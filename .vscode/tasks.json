@@ -1,0 +1,30 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"type": "cppbuild",
+			"label": "C/C++: g++.exe build active file",
+			"command": "C:\\msys64\\mingw64\\bin\\g++.exe",
+			"args": [
+				"-g",
+				"-std=c++17",
+				"-I${workspaceFolder}/headers",
+				"-o",
+				"${workspaceFolder}/main",
+				"${workspaceFolder}/src/main.cpp",
+				"${workspaceFolder}/src/JackAnalyzer.cpp",
+				"${workspaceFolder}/src/JackTokenizer.cpp",
+				"${workspaceFolder}/src/CompilationEngine.cpp",
+				"${workspaceFolder}/src/FileReader.cpp"
+			],
+			"options": {
+				"cwd": "${fileDirname}"
+			},
+			"problemMatcher": [
+				"$gcc"
+			],
+			"group": "build",
+			"detail": "compiler: C:\\msys64\\mingw64\\bin\\g++.exe"
+		}
+	]
+}
