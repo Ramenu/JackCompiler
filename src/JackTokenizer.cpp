@@ -1,7 +1,9 @@
 #include <algorithm>
 #include "JackTokenizer.h"
 
-std::string JackTokenizer::classDeclarations[10];
+std::string JackTokenizer::classDeclarations[15];
+unsigned int JackTokenizer::numberOfClasses;
+
 
 bool JackTokenizer::hasMoreTokens()
 {
@@ -15,7 +17,7 @@ bool JackTokenizer::hasMoreTokens()
 void JackTokenizer::advance()
 {
     if (in && in.peek() != EOF) //If the file still contains lines, continue to advance
-    {
+    { 
         std::getline(in, line);
         line = removeWhiteSpace(line); //Removes whitespace
         lineNum++;
@@ -24,10 +26,6 @@ void JackTokenizer::advance()
             while (in && in.peek() != EOF)
             {
                 lineNum++;
-                if (lineNum == 53)
-                {
-
-                }
                 std::getline(in, line);
                 line = removeWhiteSpace(line); //Removes whitespace
                 //If the line is not a comment, and not empty/contains spaces terminate the loop
@@ -74,7 +72,7 @@ std::string JackTokenizer::getTokenType()
             //Check if the number of chars in the keyword match up with the line (double authenication)
             if (mostSimilarStr(lineLeftToParse, keyWordArray[i]) == keyWordArray[i].length()) 
             {
-                count = line.find(keyWordArray[i]) + keyWordArray[i].size();
+                count = line.find(keyWordArray[i], count) + keyWordArray[i].size();
                 token = lineLeftToParse.substr(0, keyWordArray[i].size());
                 return "KEYWORD";
             }
@@ -87,7 +85,7 @@ std::string JackTokenizer::getTokenType()
        {
            count++; //Increment since the current character was passed
            token = lineLeftToParse[0];
-           switch (symbolArray[i])
+           switch (symbolArray[i]) //In .xml these keywords are treated differently so these are just mnemonics for them
            {
                case '<': token = "&lt;"; break;
                case '>': token = "&gt;"; break;
@@ -98,21 +96,25 @@ std::string JackTokenizer::getTokenType()
        }
     }
 
-    if (lineLeftToParse.find("\"") != std::string::npos)
+    if (lineLeftToParse[0] == '\"') //Check if its a string
     {
-        count = lineLeftToParse.find("\"");
+        count = line.find('\"', count + 1) + 1;
+        token = lineLeftToParse.substr(1, lineLeftToParse.find('\"', 1) - 1);
         return "STRING_CONST";
     }
-    if (isdigit(lineLeftToParse[count])) //If the current character is a number, return INT_CONST
+    if (isdigit(lineLeftToParse[0])) //If the current character is a number, return INT_CONST
     {
-        for (unsigned int i {count}; i < lineLeftToParse.size(); i++) //Loop through line
+        unsigned int x {};
+        for (size_t i {count}; i < line.length(); i++) //Loop through line
         {
-            if (!isdigit(lineLeftToParse[i])) //When a character is not a digit, that character is where the INT_CONST ends
+            if (!isdigit(line[i])) //When a character is not a digit, that character is where the INT_CONST ends
             {
                 count = i--;
-                token = lineLeftToParse.substr(0, i--);
+                token = lineLeftToParse.substr(0, x);
                 break;
             }
+            else
+                x++;
         }
         return "INT_CONST";
     }
@@ -124,7 +126,7 @@ std::string JackTokenizer::getTokenType()
         {
             if (line.find(keywordsCouldHaveClass[j]) != std::string::npos) //Check if "Var" "field".. keywords that could have class names within them
             {
-                for (unsigned int i {}; i < 3; i++) //Check if the identifier is a class/object
+                for (unsigned int i {}; i < numberOfClasses; i++) //Check if the identifier is a class/object
                 {
                     if (lineLeftToParse.find(classDeclarations[i]) != std::string::npos) //Check if the line contains a class/obj token
                     {
@@ -205,7 +207,7 @@ bool JackTokenizer::checkConflictingNames()
 
 std::string JackTokenizer::removeLineComments(std::string str)
 {
-    return str.substr(0, str.find("/", 0));
+    return str.substr(0, str.find("//", 0));
 }
 
 std::string JackTokenizer::removeWhiteSpace(std::string str)

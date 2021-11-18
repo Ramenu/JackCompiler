@@ -25,14 +25,17 @@
 <subroutineBody>
 <symbol> { </symbol>
 <statements>
+<letStatement>
+<keyword> let </keyword>
 <identifier> square </identifier>
 <symbol> = </symbol>
 <expression>
 <term>
-<symbol> square </symbol>
+<identifier> square </identifier>
 </term>
 </expression>
 <symbol> ; </symbol>
+</letStatement>
 <letStatement>
 <keyword> let </keyword>
 <identifier> direction </identifier>
@@ -68,12 +71,17 @@
 <subroutineBody>
 <symbol> { </symbol>
 <statements>
+<doStatement>
+<keyword> do </keyword>
 <identifier> square </identifier>
 <symbol> . </symbol>
 <identifier> dispose </identifier>
 <symbol> ( </symbol>
+<expressionList>
+</expressionList>
 <symbol> ) </symbol>
 <symbol> ; </symbol>
+</doStatement>
 <doStatement>
 <keyword> do </keyword>
 <identifier> Memory </identifier>
@@ -109,10 +117,17 @@
 <subroutineBody>
 <symbol> { </symbol>
 <statements>
+<ifStatement>
+<keyword> if </keyword>
 <symbol> ( </symbol>
+<expression>
+<term>
 <identifier> direction </identifier>
+</term>
+</expression>
 <symbol> ) </symbol>
 <symbol> { </symbol>
+<statements>
 <doStatement>
 <keyword> do </keyword>
 <identifier> square </identifier>
@@ -124,11 +139,9 @@
 <symbol> ) </symbol>
 <symbol> ; </symbol>
 </doStatement>
-<symbol> } </symbol>
 </statements>
 <symbol> } </symbol>
-</subroutineBody>
-</subroutineDec>
+</ifStatement>
 <ifStatement>
 <keyword> if </keyword>
 <symbol> ( </symbol>
@@ -140,14 +153,20 @@
 <symbol> ) </symbol>
 <symbol> { </symbol>
 <statements>
+<doStatement>
+<keyword> do </keyword>
 <identifier> square </identifier>
 <symbol> . </symbol>
 <identifier> moveDown </identifier>
 <symbol> ( </symbol>
+<expressionList>
+</expressionList>
 <symbol> ) </symbol>
 <symbol> ; </symbol>
-<symbol> } </symbol>
+</doStatement>
 </statements>
+<symbol> } </symbol>
+</ifStatement>
 <ifStatement>
 <keyword> if </keyword>
 <symbol> ( </symbol>
@@ -159,14 +178,20 @@
 <symbol> ) </symbol>
 <symbol> { </symbol>
 <statements>
+<doStatement>
+<keyword> do </keyword>
 <identifier> square </identifier>
 <symbol> . </symbol>
 <identifier> moveLeft </identifier>
 <symbol> ( </symbol>
+<expressionList>
+</expressionList>
 <symbol> ) </symbol>
 <symbol> ; </symbol>
-<symbol> } </symbol>
+</doStatement>
 </statements>
+<symbol> } </symbol>
+</ifStatement>
 <ifStatement>
 <keyword> if </keyword>
 <symbol> ( </symbol>
@@ -178,14 +203,20 @@
 <symbol> ) </symbol>
 <symbol> { </symbol>
 <statements>
+<doStatement>
+<keyword> do </keyword>
 <identifier> square </identifier>
 <symbol> . </symbol>
 <identifier> moveRight </identifier>
 <symbol> ( </symbol>
+<expressionList>
+</expressionList>
 <symbol> ) </symbol>
 <symbol> ; </symbol>
-<symbol> } </symbol>
+</doStatement>
 </statements>
+<symbol> } </symbol>
+</ifStatement>
 <doStatement>
 <keyword> do </keyword>
 <identifier> Sys </identifier>
@@ -206,8 +237,10 @@
 <keyword> return </keyword>
 <symbol> ; </symbol>
 </returnStatement>
+</statements>
 <symbol> } </symbol>
-</ifStatement>
+</subroutineBody>
+</subroutineDec>
 <subroutineDec>
 <keyword> method </keyword>
 <keyword> void </keyword>
@@ -231,14 +264,17 @@
 <symbol> ; </symbol>
 </varDec>
 <statements>
+<letStatement>
+<keyword> let </keyword>
 <identifier> exit </identifier>
 <symbol> = </symbol>
 <expression>
 <term>
-<symbol> key </symbol>
+<identifier> key </identifier>
 </term>
 </expression>
 <symbol> ; </symbol>
+</letStatement>
 <whileStatement>
 <keyword> while </keyword>
 <symbol> ( </symbol>
@@ -249,6 +285,7 @@
 </expression>
 <symbol> ) </symbol>
 <symbol> { </symbol>
+<statements>
 <whileStatement>
 <keyword> while </keyword>
 <symbol> ( </symbol>
@@ -259,6 +296,7 @@
 </expression>
 <symbol> ) </symbol>
 <symbol> { </symbol>
+<statements>
 <letStatement>
 <keyword> let </keyword>
 <identifier> key </identifier>
@@ -279,13 +317,9 @@
 <symbol> ) </symbol>
 <symbol> ; </symbol>
 </doStatement>
-<symbol> } </symbol>
-</whileStatement>
-</whileStatement>
 </statements>
 <symbol> } </symbol>
-</subroutineBody>
-</subroutineDec>
+</whileStatement>
 <ifStatement>
 <keyword> if </keyword>
 <symbol> ( </symbol>
@@ -297,16 +331,20 @@
 <symbol> ) </symbol>
 <symbol> { </symbol>
 <statements>
+<letStatement>
+<keyword> let </keyword>
 <identifier> exit </identifier>
 <symbol> = </symbol>
 <expression>
 <term>
-<symbol> exit </symbol>
+<identifier> exit </identifier>
 </term>
 </expression>
 <symbol> ; </symbol>
-<symbol> } </symbol>
+</letStatement>
 </statements>
+<symbol> } </symbol>
+</ifStatement>
 <ifStatement>
 <keyword> if </keyword>
 <symbol> ( </symbol>
@@ -318,14 +356,20 @@
 <symbol> ) </symbol>
 <symbol> { </symbol>
 <statements>
+<doStatement>
+<keyword> do </keyword>
 <identifier> square </identifier>
 <symbol> . </symbol>
 <identifier> decSize </identifier>
 <symbol> ( </symbol>
+<expressionList>
+</expressionList>
 <symbol> ) </symbol>
 <symbol> ; </symbol>
-<symbol> } </symbol>
+</doStatement>
 </statements>
+<symbol> } </symbol>
+</ifStatement>
 <ifStatement>
 <keyword> if </keyword>
 <symbol> ( </symbol>
@@ -337,14 +381,20 @@
 <symbol> ) </symbol>
 <symbol> { </symbol>
 <statements>
+<doStatement>
+<keyword> do </keyword>
 <identifier> square </identifier>
 <symbol> . </symbol>
 <identifier> incSize </identifier>
 <symbol> ( </symbol>
+<expressionList>
+</expressionList>
 <symbol> ) </symbol>
 <symbol> ; </symbol>
-<symbol> } </symbol>
+</doStatement>
 </statements>
+<symbol> } </symbol>
+</ifStatement>
 <ifStatement>
 <keyword> if </keyword>
 <symbol> ( </symbol>
@@ -356,16 +406,20 @@
 <symbol> ) </symbol>
 <symbol> { </symbol>
 <statements>
+<letStatement>
+<keyword> let </keyword>
 <identifier> direction </identifier>
 <symbol> = </symbol>
 <expression>
 <term>
-<symbol> exit </symbol>
+<identifier> exit </identifier>
 </term>
 </expression>
 <symbol> ; </symbol>
-<symbol> } </symbol>
+</letStatement>
 </statements>
+<symbol> } </symbol>
+</ifStatement>
 <ifStatement>
 <keyword> if </keyword>
 <symbol> ( </symbol>
@@ -377,16 +431,20 @@
 <symbol> ) </symbol>
 <symbol> { </symbol>
 <statements>
+<letStatement>
+<keyword> let </keyword>
 <identifier> direction </identifier>
 <symbol> = </symbol>
 <expression>
 <term>
-<symbol> key </symbol>
+<identifier> key </identifier>
 </term>
 </expression>
 <symbol> ; </symbol>
-<symbol> } </symbol>
+</letStatement>
 </statements>
+<symbol> } </symbol>
+</ifStatement>
 <ifStatement>
 <keyword> if </keyword>
 <symbol> ( </symbol>
@@ -398,16 +456,20 @@
 <symbol> ) </symbol>
 <symbol> { </symbol>
 <statements>
+<letStatement>
+<keyword> let </keyword>
 <identifier> direction </identifier>
 <symbol> = </symbol>
 <expression>
 <term>
-<symbol> square </symbol>
+<identifier> square </identifier>
 </term>
 </expression>
 <symbol> ; </symbol>
-<symbol> } </symbol>
+</letStatement>
 </statements>
+<symbol> } </symbol>
+</ifStatement>
 <ifStatement>
 <keyword> if </keyword>
 <symbol> ( </symbol>
@@ -419,16 +481,20 @@
 <symbol> ) </symbol>
 <symbol> { </symbol>
 <statements>
+<letStatement>
+<keyword> let </keyword>
 <identifier> direction </identifier>
 <symbol> = </symbol>
 <expression>
 <term>
-<symbol> direction </symbol>
+<identifier> direction </identifier>
 </term>
 </expression>
 <symbol> ; </symbol>
-<symbol> } </symbol>
+</letStatement>
 </statements>
+<symbol> } </symbol>
+</ifStatement>
 <whileStatement>
 <keyword> while </keyword>
 <symbol> ( </symbol>
@@ -439,6 +505,7 @@
 </expression>
 <symbol> ) </symbol>
 <symbol> { </symbol>
+<statements>
 <letStatement>
 <keyword> let </keyword>
 <identifier> key </identifier>
@@ -459,28 +526,19 @@
 <symbol> ) </symbol>
 <symbol> ; </symbol>
 </doStatement>
+</statements>
 <symbol> } </symbol>
 </whileStatement>
+</statements>
 <symbol> } </symbol>
-</ifStatement>
+</whileStatement>
 <returnStatement>
 <keyword> return </keyword>
 <symbol> ; </symbol>
 </returnStatement>
+</statements>
 <symbol> } </symbol>
-</ifStatement>
+</subroutineBody>
+</subroutineDec>
 <symbol> } </symbol>
-</ifStatement>
-<symbol> } </symbol>
-</ifStatement>
-<symbol> } </symbol>
-</ifStatement>
-<symbol> } </symbol>
-</ifStatement>
-<symbol> } </symbol>
-</ifStatement>
-<symbol> } </symbol>
-</ifStatement>
-<symbol> } </symbol>
-</ifStatement>
 </class>

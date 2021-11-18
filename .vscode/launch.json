@@ -9,7 +9,7 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/main.exe",
-            "args": ["${workspaceFolder}/testfiles/SquareGame.jack"],
+            "args": ["${workspaceFolder}/Square/Main.jack"],
             "stopAtEntry": false,
             "cwd": "${fileDirname}",
             "environment": [],
