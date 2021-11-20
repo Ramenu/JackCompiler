@@ -53,6 +53,7 @@ void JackTokenizer::advance()
 
 std::string JackTokenizer::getTokenType()
 {
+    prevToken = token;
     std::string keyWordArray[21] //Array full of keywords in the Jack language
     {
      "class", "constructor", "function", "method", "field", "static", "var", "int", "char", "boolean",
@@ -85,13 +86,6 @@ std::string JackTokenizer::getTokenType()
        {
            count++; //Increment since the current character was passed
            token = lineLeftToParse[0];
-           switch (symbolArray[i]) //In .xml these keywords are treated differently so these are just mnemonics for them
-           {
-               case '<': token = "&lt;"; break;
-               case '>': token = "&gt;"; break;
-               case '\"': token = "&quot;"; break;
-               case '&': token = "&amp"; break;
-           }
            return "SYMBOL";
        }
     }
@@ -122,11 +116,11 @@ std::string JackTokenizer::getTokenType()
     bool anyClassNamesMatch {};
     if (isupper(lineLeftToParse[0])) //First character of class must be capital
     {
-        for (unsigned int j {}; j < 6; j++) //Loop through keywords that can legally have class names within them
+        for (size_t j {}; j < 6; j++) //Loop through keywords that can legally have class names within them
         {
             if (line.find(keywordsCouldHaveClass[j]) != std::string::npos) //Check if "Var" "field".. keywords that could have class names within them
             {
-                for (unsigned int i {}; i < numberOfClasses; i++) //Check if the identifier is a class/object
+                for (size_t i {}; i < numberOfClasses; i++) //Check if the identifier is a class/object
                 {
                     if (lineLeftToParse.find(classDeclarations[i]) != std::string::npos) //Check if the line contains a class/obj token
                     {
@@ -158,7 +152,7 @@ std::string JackTokenizer::getTokenType()
     //If none of the above were returned, the token is considered as an identifier
     for (unsigned int i {count}; i < line.size(); i++) //Iterate through the string characters
     {
-        for (unsigned int j {}; j < 19; j++) //Loop through all the symbols
+        for (unsigned short j {}; j < 19; j++) //Loop through all the symbols
         {
             if (line[i] == symbolArray[j]) //Check where the symbol is located, that is where the identifier ends
             {
@@ -175,7 +169,7 @@ std::string JackTokenizer::getTokenType()
 unsigned int JackTokenizer::mostSimilarStr(std::string lineToCompare, std::string exactString)
 {
     unsigned int charsMatching {}, j {};
-    for (unsigned int i {}; i < exactString.length(); i++) //Loop through both strings
+    for (size_t i {}; i < exactString.length(); i++) //Loop through both strings
     {
         for (; j < lineToCompare.length(); j++)
         {
@@ -194,7 +188,7 @@ unsigned int JackTokenizer::mostSimilarStr(std::string lineToCompare, std::strin
 bool JackTokenizer::checkConflictingNames()
 {
     unsigned int matchingNames {};
-    for (unsigned int i {}; i < 3; i++)
+    for (unsigned int i {}; i < numberOfClasses; i++)
     {
         if (line.find(classDeclarations[i]) != std::string::npos) //If line finds any declared class names
             matchingNames++;

@@ -14,12 +14,12 @@ class CompilationEngine
         bool errorHappened;
         unsigned int errorsFound;
         std::string tokenType;
+        std::string lastTokenType;
         JackTokenizer tokenizer;
         std::ofstream out {};
-        std::string prevToken;
-        std::string prevTokenType;
         bool tokenIsStatement;
-        bool isLL1;
+        bool inExpressionList;
+        bool inDo;
         std::ofstream openOutputFile(const char* filePath);
         unsigned int noStatementMatches();
         bool subroutineEnds();
@@ -40,6 +40,8 @@ class CompilationEngine
         void compileDo();
         void compileReturn();
         void compileExpression();
+        unsigned int expressionCallCount;
+        bool compileAnotherExpressionOrTerm(bool isSecondCall);
         void compileTerm();
         void compileExpressionList();
         void parseLineAndOutput();

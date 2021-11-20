@@ -8,6 +8,7 @@ class JackTokenizer
     public:
         bool debug;
         std::string token;
+        std::string prevToken;
         static std::string classDeclarations[15];
         void advance();
         std::string getTokenType();

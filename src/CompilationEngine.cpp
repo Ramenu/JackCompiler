@@ -1,7 +1,6 @@
 #include "CompilationEngine.h"
 #include "FileReader.h"
 
-bool outputtedPrevious, doNotCallTerm, inExpressionList {};
 //Class constructor
 CompilationEngine::CompilationEngine(const char* inputFile, const char* outputFile, const char* inputFileName)
 {
@@ -15,8 +14,8 @@ CompilationEngine::CompilationEngine(const char* inputFile, const char* outputFi
     tokenizer.endOfFileReached = false;
     errorHappened = false;
     errorsFound = 0;
-    outputtedPrevious = true;
-    isLL1 = true;
+    expressionCallCount = 0;
+    inDo = false;
 
     tokenizer.advance(); //Advance and get the first line of the file
     updateToken(); //Get the first token, should be "class"!
@@ -86,9 +85,16 @@ unsigned int CompilationEngine::noStatementMatches()
 
 void CompilationEngine::output(std::string tokenType)
 {
+    //TODO: Add a built-in error handler to this
     std::string outputToken {tokenizer.token}; //By default, it is the current token
-    if (!outputtedPrevious) //If it is LL2 and the previous token was not outputted yet
-        outputToken = prevToken; //Let the token outputted be the previous token
+
+    switch (tokenizer.token[0]) //In .xml these characters are treated differently so these are just mnemonics for them
+    {
+        case '<': outputToken = "&lt;"; break;
+        case '>': outputToken = "&gt;"; break;
+        case '\"': outputToken = "&quot;"; break;
+        case '&': outputToken = "&amp;"; break;
+    }
     if (tokenType == "KEYWORD")
         out << "<keyword> " << outputToken << " </keyword>\n";
     else if (tokenType == "SYMBOL")
@@ -212,7 +218,6 @@ void CompilationEngine::compileIf()
     syntaxAnalyzer("(", "SYMBOL");
     updateToken();
     compileExpression();
-    updateToken();
     syntaxAnalyzer(")", "SYMBOL");
     updateToken(); //Should be "{", very important to update it here, because compileStatements() will not be called if not done!
     syntaxAnalyzer("{", "SYMBOL");
@@ -265,20 +270,13 @@ void CompilationEngine::compileWhile()
     updateToken();
     syntaxAnalyzer("(", "SYMBOL");
     updateToken();
-    out << "<expression>\n";
-    while (tokenizer.token != ")")
-    {
-        compileTerm();
-        updateToken();
-        if (tokenizer.token != ")" && tokenType == "SYMBOL") //Each term must be seperated by a symbol
-        {
-            output(tokenType);
-            updateToken();
-        }
-    }
-    out << "</expression>\n";
+    compileExpression();
     syntaxAnalyzer(")", "SYMBOL");
-    updateToken(); //Should be "{", very important to update it here, because compileStatements() will not be called if not done!
+    /* This while loop is important here, since compileExpression() parses up to ")" each time it is called, if there are multiple
+       brackets then it will not update those tokens but it will output them, so updating it until it reaches the body should do */
+    //TODO: Prevent loop from being infinite (add error message or something)
+    while (tokenizer.token != "{")
+        updateToken(); //Should be "{", very important to update it here, because compileStatements() will not be called if not done!
     syntaxAnalyzer("{", "SYMBOL");
     tokenIsStatement = false;
     if (tokenizer.hasMoreTokens())
@@ -302,8 +300,11 @@ void CompilationEngine::compileDo()
     out << "<doStatement>\n<keyword> " << tokenizer.token << " </keyword>\n"; 
     parseUntilSymbol('(');
     syntaxAnalyzer("(", "SYMBOL");
+    inExpressionList = true;
+    inDo = true; //The purpose of "inDo" is to let the program know that expression list is being called before compiling expression
     compileExpressionList();
-    syntaxAnalyzer(")", "SYMBOL");
+    inExpressionList = false;
+    inDo = false;
     updateToken();
     syntaxAnalyzer(";", "SYMBOL");
     if (tokenizer.hasMoreTokens())
@@ -319,15 +320,11 @@ void CompilationEngine::compileReturn()
     tokenIsStatement = true;
     out << "<returnStatement>\n<keyword> " << tokenizer.token << " </keyword>\n";
     updateToken();
-    if (tokenType == "IDENTIFIER" || tokenType == "STR_CONST" || tokenType == "INT_CONST")
-    {
+    if (tokenType == "IDENTIFIER" || tokenType == "STR_CONST" || tokenType == "INT_CONST" || tokenType == "KEYWORD")
         compileExpression();
-        updateToken(); //Get the ";"
-        syntaxAnalyzer(";", "SYMBOL");
-    }
-    else
-        syntaxAnalyzer(";", "SYMBOL");
+    output(tokenType); //Output ";"
     out << "</returnStatement>\n"; 
+
     if (tokenizer.hasMoreTokens())
         updateToken(); //There should not be any tokens left! But if there are it is probably a "}" so just update it
     else
@@ -340,34 +337,25 @@ void CompilationEngine::compileLet()
     tokenIsStatement = true;
     out << "<letStatement>\n<keyword> " << tokenizer.token << " </keyword>\n" ;
     updateToken();
-    output(tokenType);
+    output(tokenType); //Output the identifier
     updateToken();
     if (tokenizer.token == "[") //Check to see if its accessing array elements
     {
         output(tokenType);
         updateToken();
         compileExpression();
-        updateToken();
         syntaxAnalyzer("]", "SYMBOL");
         updateToken();
     }
     syntaxAnalyzer("=", "SYMBOL");
     updateToken();
 
-    /* Since at this point the parsing process becomes LL2 instead of LL1 we have to store the tokentype and
-       the token in temporary variables and get the next token and parse it appropriately based on that */
-
-    prevToken = tokenizer.token; //Store the current token in a temporary token before updating it
-    prevTokenType = tokenType; //Store current token type
-
-    updateToken(); //Check to see if the updated token is a . ( or [
-    outputtedPrevious = false;
-    if (tokenizer.token == "." || tokenizer.token == "(" || tokenizer.token == "[") 
-        isLL1 = false; //Set LL1 to false, so when compileExpression is called it will handle it appropriately
+    if (tokenizer.line.find("true") != std::string::npos)
+        printf("\n");
     compileExpression();
-    outputtedPrevious = true; //Set it to true just for precaution
 
-    if (tokenizer.hasMoreTokens())
+    //If the token is a curly brace then the let statement ends here, otherwise update to see if it is a ";"
+    if (tokenizer.token != ";" && tokenizer.hasMoreTokens()) 
         updateToken();
     syntaxAnalyzer(";", "SYMBOL");
     out << "</letStatement>\n"; 
@@ -474,98 +462,149 @@ void CompilationEngine::compileVarDec()
 
 void CompilationEngine::compileExpression()
 {
+    expressionCallCount++; //Increment each time compile expression is called
+    bool contLoop {};
+    char operatorSymbols[9] {'+', '-', '*', '/', '&', '|', '<', '>', '='};
+    char endExpressionSymbols[4] {')', ']', ';', ','}; //Symbols that an expression can end with
     out << "<expression>\n";
-    if (!doNotCallTerm) //if compileTerm() was already called then do not compile it again (avoids recursion)
+    if (tokenizer.line.find("letsize=size-2") != std::string::npos)
+        printf("hello apple world");
+    while (true)
     {
-        compileTerm();
-        if (inExpressionList)
+        contLoop = false; //Reinitialize contLoop to false once/if the loop is repeated again
+        compileTerm(); //The token is updated when the term is compiled, so no need to compile it here
+        for (unsigned short i {}; i < 9; i++)
         {
-            updateToken();
-        }
-        //Since outputted previous was set to true no need to update token, unless we are in expression list
-        if (tokenizer.token == "+" || tokenizer.token == "-" || tokenizer.token == "*" || tokenizer.token == "/") 
-        {
-            outputtedPrevious = true;
-            while (tokenizer.token != ";" && tokenizer.token != ")")
+            if (tokenizer.token[0] == operatorSymbols[i])
             {
-                output(tokenType);
+                output(tokenType); //Output an operator
                 updateToken();
-                if (tokenizer.token != ";" && tokenizer.token != ")")
-                    compileTerm();
-                updateToken();
+                contLoop = true; //Repeat and compile a term again
+                break;
             }
         }
-    }
-    else
-    {
-        out << "<term>\n";
-        output(tokenType);
-        out << "</term>\n";
-        if (inExpressionList)
-        {
-            updateToken();
-        }
+        if (contLoop)
+            continue;
+        for (unsigned short i {}; i < 4; i++)
+            if (tokenizer.token[0] == endExpressionSymbols[i])
+                break; 
+        //TODO: Output error message if there is no end expression 
+        break;
     }
     out << "</expression>\n";
     out.flush();
+
+    /* If there is more than one expression being compiled and the expression finishes, we want to update the token
+       since the expression does not actually end yet */
+    if (tokenizer.token == ")" || tokenizer.token == "]")
+    {
+        //If we are not compiling do, then expression calls expression list, ECP must be over or equal to 2 to be updated
+        if (inExpressionList && !inDo && expressionCallCount > 2) 
+        {
+            output(tokenType);
+            updateToken();
+        }
+        //Since compiling do calls compile expression list ECP would have to be over 1 to be updated
+        else if (inExpressionList && inDo && expressionCallCount > 1)
+        {
+            output(tokenType);
+            updateToken();
+        }
+        else if (!inExpressionList && expressionCallCount > 1)
+        {
+            output(tokenType);
+            updateToken();
+        }
+    }
+    expressionCallCount--; //Decrement when the method finishes, should be 0 when there is expression being compiled in the call stack
 }
 
 void CompilationEngine::compileExpressionList()
 {
-    inExpressionList = true;
     out << "<expressionList>\n";
     updateToken(); //Get the first expression
-    while (tokenizer.token != ")")
+    while (tokenizer.token != ")" && tokenizer.token != ";")
     {
         compileExpression();
-        if (tokenizer.token != ")") //Make sure the expression list does not end
+        //The expression list must end with a parenthesis, and each expression, each time compiled, must be seperated with a comma
+        if (tokenizer.token != ")" && tokenizer.token == ",") 
         {
             output(tokenType);
             updateToken();
         }
     }
     out << "</expressionList>\n";
-    inExpressionList = false;
+    output(tokenType); //Output ")"
 }
 
 void CompilationEngine::compileTerm()
 {
+    
     out << "<term>\n";
-    if (isLL1)
+    output(tokenType);
+    if (!compileAnotherExpressionOrTerm(false)) //Check if the current token starts an expression or term, if it returns false..
     {
-        if (outputtedPrevious)
-            output(tokenType);
-        else
-            output(prevTokenType);
-        if (tokenizer.lineLeftToParse[1] == '[') //Check if next token is accessing array element
-        {
-            updateToken();
-            output(tokenType);
-            updateToken();
-            compileExpression();
-            updateToken();
-            output(tokenType);
-        }
+        updateToken(); //Update the token
+        compileAnotherExpressionOrTerm(true); //Check if this token starts an expression or term
     }
-    else //Otherwise if we are in LL2
+    if (tokenizer.token == ".") //Check if accessing class/object
     {
-        output(prevTokenType); //Output the previous token first
-        outputtedPrevious = true;
         output(tokenType);
-        updateToken();
-        output(tokenType); //Output the "(" <--
-        parseUntilSymbol('(');
-        output(tokenType); //Output ")"
-        doNotCallTerm = true;
-        compileExpressionList();
-        output(tokenType); //Output ")"
-        //Set boolean values back to their original values
-        doNotCallTerm = false;
-        isLL1 = true;
+        parseUntilSymbol('('); //Parse it normally until the first parameter, no need to compile anything
+        output(tokenType);
+        inExpressionList = true;
+        compileExpressionList(); //Compile the parameter list
+        inExpressionList = false;
     }
     out << "</term>\n";
     out.flush();
 }
+
+/* Compiles an expression or term based on the token, the parameter is set to true if the method calling it is calling it
+   for the second time, if not it is set to false */
+bool CompilationEngine::compileAnotherExpressionOrTerm(bool isSecondCall) 
+{
+    char startExpressionSymbols[2] {'(', '['};
+    char unaryOpSymbols[2] {'-', '~'};
+    for (unsigned short i {}; i < 2; i++) 
+    {
+        if (tokenizer.token[0] == startExpressionSymbols[i]) //If it finds another expression then call compile expression
+        {
+            //No need to output the current token since compileTerm already does that
+            if (isSecondCall) //If it the second call then the token is updated, so outputting it is necessary
+                output(tokenType); 
+            updateToken(); 
+            compileExpression();
+
+            //Since compile expression will output the same token, we dont want the program to output the same token twice
+            if (!(expressionCallCount >= 1)) 
+                output(tokenType);
+            return true;
+        }
+        else if (tokenizer.token[0] == unaryOpSymbols[i]) //If it finds an unary operator then compile another term
+        {
+            //This makes sure if the number is negative and not subtraction, since negative numbers must have a ( placed before the -
+            if (unaryOpSymbols[i] == unaryOpSymbols[0]) 
+            {
+                if (tokenizer.prevToken == "(")
+                {
+                    updateToken();
+                    compileTerm();
+                    return true;
+                }
+            }
+            else
+            {
+                updateToken();
+                compileTerm();
+                return true;
+            }
+        }
+    }
+    return false; 
+}
+
+
 
 /* End of methods */
 
