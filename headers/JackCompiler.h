@@ -1,11 +1,11 @@
-#ifndef JACKANALYZER_H
-#define JACKANALYZER_H
+#ifndef JACKCOMPILER_H
+#define JACKCOMPILER_H
 
 #include <fstream>
 #include <ostream>
 #include "CompilationEngine.h"
 
-class JackAnalyzer
+class JackCompiler
 {
     public:
         void startUp(const char* path, bool doDebug);

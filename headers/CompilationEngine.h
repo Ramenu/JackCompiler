@@ -4,6 +4,7 @@
 #include <fstream>
 #include <ostream>
 #include "JackTokenizer.h"
+#include "SymbolTable.h"
 
 class CompilationEngine
 {
@@ -13,9 +14,10 @@ class CompilationEngine
         const char* inputFileName;
         bool errorHappened;
         unsigned int errorsFound;
-        std::string tokenType;
-        std::string lastTokenType;
+        bool inSubroutine;
+        std::string tokenType; 
         JackTokenizer tokenizer;
+        SymbolTable table;
         std::ofstream out {};
         bool tokenIsStatement;
         bool inExpressionList;
@@ -47,8 +49,8 @@ class CompilationEngine
         void parseLineAndOutput();
         void updateToken();
         void advanceIfNoTokens();
-        void syntaxAnalyzer(const char* expectedOutput, const char* expectedTokenType);
-        void reportError(const char* token);
+        bool syntaxAnalyzer(const char* expectedOutput);
+        void reportError(const char* tokenOrMessage, bool isDefault);
         void parseUntilSymbol(char symbol);
         void output(std::string tokenType);
 };

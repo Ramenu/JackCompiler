@@ -1,0 +1,23 @@
+//Tests if the symbol table is working properly
+
+class Main {
+    static int statNum;
+    field int fNum1, fNum2;
+
+    function void canYouSurvive(int arg1, int arg2, int arg3)
+    {
+        if (urnotgay)
+        {
+            return myass;
+        }
+        var int firstVar, secondVar;
+        var String thirdVar;
+        return;
+    }
+
+    function void dispose()
+    {
+        var int success;
+        return;
+    }
+}

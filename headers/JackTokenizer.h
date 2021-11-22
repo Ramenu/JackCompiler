@@ -16,10 +16,10 @@ class JackTokenizer
         std::ifstream in;
         unsigned int count;
         unsigned int lineNum;
-        static unsigned int numberOfClasses;
-        bool endOfFileReached;
+        static unsigned int numberOfClasses; 
         std::string line;
         std::string lineLeftToParse;
+        void toNextLine();
     private:
         std::string removeWhiteSpace(std::string str);
         std::string removeLineComments(std::string str);

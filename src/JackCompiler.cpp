@@ -1,24 +1,31 @@
 #include <filesystem>
-#include "JackAnalyzer.h"
+#include "JackCompiler.h"
+#define RESET   "\033[0m"
+#define RED     "\033[31m" 
 
 namespace fs = std::filesystem;
 
-
-
 //Is called from main, and checks to see if the path given is a directory or not
-void JackAnalyzer::startUp(const char* path, bool doDebug)
+void JackCompiler::startUp(const char* path, bool doDebug)
 {
     if (fs::is_directory(path))
         readDirectory(path, doDebug);
-    else
+    else if (fs::is_regular_file(path))
     {
-        addClassDeclarationsToArr(path);
-        CompilationEngine engine(path, fs::path(path).filename().replace_extension(".xml").string().c_str(), fs::path(path).filename().string().c_str());
+        if (fs::path(path).extension().string() == ".jack") //Confirm that a jack file is being compiled
+        {
+            addClassDeclarationsToArr(path);
+            CompilationEngine engine(path, fs::path(path).filename().replace_extension(".xml").string().c_str(), fs::path(path).filename().string().c_str());
+        }
+        else
+            printf(RED"ERROR: " RESET "File \"%s\" is not a jack file\n", fs::path(path).filename().string().c_str());
     }
+    else
+        printf(RED"ERROR: " RESET "Failed to open file/directory at \"%s\". Path not found\n", path);
 }
 
 //Adds the class definitions to the classDec array, useful for handling tokens
-void JackAnalyzer::addClassDeclarationsToArr(std::string pathName)
+void JackCompiler::addClassDeclarationsToArr(std::string pathName)
 {
     //Standard OS libraries (must be put in before the other classes)
     JackTokenizer::classDeclarations[0] = "Math";
@@ -29,30 +36,39 @@ void JackAnalyzer::addClassDeclarationsToArr(std::string pathName)
     JackTokenizer::classDeclarations[5] = "String";
     JackTokenizer::classDeclarations[6] = "Array";
     JackTokenizer::classDeclarations[7] = "Sys";
+    JackTokenizer::numberOfClasses = 8;
 
     if (fs::is_regular_file(pathName)) //If only one file is being compiled
         pathName = fs::path(pathName).parent_path().string(); //Make sure to store the other file names in case it calls other classes
-    JackTokenizer::numberOfClasses = 8;
-    for (const auto& entry: fs::directory_iterator(pathName))
-        if (entry.path().filename().extension() == ".jack")
+    if (fs::path(pathName).has_parent_path())
+    {
+        for (const auto& entry: fs::directory_iterator(pathName))
         {
-            JackTokenizer::classDeclarations[JackTokenizer::numberOfClasses] = entry.path().filename().replace_extension().string();
-            JackTokenizer::numberOfClasses++;
+            if (entry.path().filename().extension() == ".jack")
+            {
+                JackTokenizer::classDeclarations[JackTokenizer::numberOfClasses] = entry.path().filename().replace_extension().string();
+                JackTokenizer::numberOfClasses++;
+            }
         }
+    }
 }
 
 /* Method that iterates through the contents of a directory, finding the files with the .jack extension and sending them to the
    JackTokenizer to parse them */
-void JackAnalyzer::readDirectory(const char* directoryPath, bool doDebug)
+void JackCompiler::readDirectory(const char* directoryPath, bool doDebug)
 {
+    bool hasAnyJackFiles {};
     addClassDeclarationsToArr(directoryPath);
     for (const auto& entry: fs::directory_iterator(directoryPath)) //Iterate through directory
     {
         if (entry.path().extension() == ".jack")
         {
+            hasAnyJackFiles = true;
             std::string pathToInputFile {entry.path().string()};
             CompilationEngine engine(pathToInputFile.c_str(), entry.path().filename().replace_extension(".xml").string().c_str(), entry.path().filename().string().c_str());
         }
     }
+    if (!hasAnyJackFiles) //If no jack files were found in the directory output an error
+        printf(RED"ERROR: " RESET "No jack files found in directory \"%s\"\n", directoryPath);
 }
 

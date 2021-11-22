@@ -13,6 +13,12 @@ bool JackTokenizer::hasMoreTokens()
     return false;
 }
 
+//Gets the next line of the file
+void JackTokenizer::toNextLine()
+{
+    std::getline(in, line);
+}
+
 //Advances to the next line
 void JackTokenizer::advance()
 {
@@ -46,8 +52,8 @@ void JackTokenizer::advance()
         count = 0; //Reset the substring counter to index 0
         line = removeLineComments(line); //Removes line comments
     }
-    else
-        endOfFileReached = true;
+    else 
+        in.close();
 }
 
 

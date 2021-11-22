@@ -12,10 +12,11 @@
 				"-o",
 				"${workspaceFolder}/main",
 				"${workspaceFolder}/src/main.cpp",
-				"${workspaceFolder}/src/JackAnalyzer.cpp",
+				"${workspaceFolder}/src/JackCompiler.cpp",
 				"${workspaceFolder}/src/JackTokenizer.cpp",
 				"${workspaceFolder}/src/CompilationEngine.cpp",
-				"${workspaceFolder}/src/FileReader.cpp"
+				"${workspaceFolder}/src/FileReader.cpp",
+				"${workspaceFolder}/src/SymbolTable.cpp"
 			],
 			"options": {
 				"cwd": "${fileDirname}"
