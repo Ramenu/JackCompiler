@@ -12,10 +12,10 @@ void JackCompiler::startUp(const char* path, bool doDebug)
         readDirectory(path, doDebug);
     else if (fs::is_regular_file(path))
     {
-        if (fs::path(path).extension().string() == ".jack") //Confirm that a jack file is being compiled
+        if (fs::path(path).filename().extension().string() == ".jack") //Confirm that a jack file is being compiled
         {
             addClassDeclarationsToArr(path);
-            CompilationEngine engine(path, fs::path(path).filename().replace_extension(".xml").string().c_str(), fs::path(path).filename().string().c_str());
+            CompilationEngine engine(path, fs::path(path).filename().replace_extension(".vm").string().c_str(), fs::path(path).filename().string().c_str());
         }
         else
             printf(RED"ERROR: " RESET "File \"%s\" is not a jack file\n", fs::path(path).filename().string().c_str());
@@ -39,8 +39,13 @@ void JackCompiler::addClassDeclarationsToArr(std::string pathName)
     JackTokenizer::numberOfClasses = 8;
 
     if (fs::is_regular_file(pathName)) //If only one file is being compiled
-        pathName = fs::path(pathName).parent_path().string(); //Make sure to store the other file names in case it calls other classes
-    if (fs::path(pathName).has_parent_path())
+    {
+        JackTokenizer::classDeclarations[8] = fs::path(pathName).filename().replace_extension().string();
+        JackTokenizer::numberOfClasses++;
+        if (fs::path(pathName).filename().replace_extension().string() != "Main")
+            printf(RED "ERROR: " RESET "File \"%s\" must be named Main!\n", pathName.c_str());
+    }
+    else if (fs::is_directory(pathName))
     {
         for (const auto& entry: fs::directory_iterator(pathName))
         {
@@ -50,6 +55,7 @@ void JackCompiler::addClassDeclarationsToArr(std::string pathName)
                 JackTokenizer::numberOfClasses++;
             }
         }
+        //TODO: Add a feature that checks if one of them is at least Main.jack
     }
 }
 
@@ -65,7 +71,7 @@ void JackCompiler::readDirectory(const char* directoryPath, bool doDebug)
         {
             hasAnyJackFiles = true;
             std::string pathToInputFile {entry.path().string()};
-            CompilationEngine engine(pathToInputFile.c_str(), entry.path().filename().replace_extension(".xml").string().c_str(), entry.path().filename().string().c_str());
+            CompilationEngine engine(pathToInputFile.c_str(), entry.path().filename().replace_extension(".vm").string().c_str(), entry.path().filename().string().c_str());
         }
     }
     if (!hasAnyJackFiles) //If no jack files were found in the directory output an error

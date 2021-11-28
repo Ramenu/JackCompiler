@@ -15,8 +15,10 @@
 				"${workspaceFolder}/src/JackCompiler.cpp",
 				"${workspaceFolder}/src/JackTokenizer.cpp",
 				"${workspaceFolder}/src/CompilationEngine.cpp",
-				"${workspaceFolder}/src/FileReader.cpp",
-				"${workspaceFolder}/src/SymbolTable.cpp"
+				"${workspaceFolder}/src/SymbolTable.cpp",
+				"${workspaceFolder}/src/VMWriter.cpp",
+				"${workspaceFolder}/src/Line.cpp",
+				"${workspaceFolder}/src/FileReader.cpp"
 			],
 			"options": {
 				"cwd": "${fileDirname}"

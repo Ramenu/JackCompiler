@@ -1,7 +1,7 @@
 #ifndef SYMBOLTABLE_H
 #define SYMBOLTABLE_H
 
-#include <iostream>
+#include <string>
 #include <unordered_map>
 #include "Identifier.h"
 
@@ -16,13 +16,12 @@ class SymbolTable
         unsigned int indexOf(std::string name);
         unsigned int noOfStaticVars;
         unsigned int noOfFieldVars;
+        unsigned int noOfArgVars;
     private:
         std::string getValFromTable(std::string name, std::string valueReturned);
         std::unordered_map<std::string, Identifier> classTable;
         std::unordered_map<std::string, Identifier> subroutineTable;
-        unsigned int noOfArgVars;
         unsigned int noOfLclVars;
-
 };
 
 

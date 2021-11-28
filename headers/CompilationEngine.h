@@ -1,33 +1,43 @@
 #ifndef COMPILATIONENGINE_H
 #define COMPILATIONDEFINE_H
 
-#include <fstream>
-#include <ostream>
 #include "JackTokenizer.h"
 #include "SymbolTable.h"
+#include "VMWriter.h"
+#include "FileReader.h"
 
 class CompilationEngine
 {
     public:
         CompilationEngine(const char* inputFile,  const char* outputFile, const char* inputFileName);
     private: 
+        bool isStandardClass(std::string token);
+        std::string className;
+        std::string subroutineDec;
+        std::string subroutineName;
+        std::string subroutineType;
+        std::string arrayIdentifier;
         const char* inputFileName;
         bool errorHappened;
+        bool equalToExpression;
         unsigned int errorsFound;
+        bool inLet;
+        bool inTerm;
+        size_t noifsCompiled;
+        size_t nowhilesCompiled;
         bool inSubroutine;
         std::string tokenType; 
         JackTokenizer tokenizer;
         SymbolTable table;
-        std::ofstream out {};
+        VMWriter vm;
+        FileReader reader;
         bool tokenIsStatement;
         bool inExpressionList;
         bool inDo;
-        std::ofstream openOutputFile(const char* filePath);
         unsigned int noStatementMatches();
         bool subroutineEnds();
         bool subroutineStarts();
         void compileFile();
-        void getTokenAndOutput();
         void selectCompilationTask();
         void compileClass();
         void compileClassVarDec();
@@ -42,17 +52,19 @@ class CompilationEngine
         void compileDo();
         void compileReturn();
         void compileExpression();
+        void compileString();
         unsigned int expressionCallCount;
+        std::string callTo;
+        size_t nArgs;
+        size_t noOfTerms;
         bool compileAnotherExpressionOrTerm(bool isSecondCall);
         void compileTerm();
         void compileExpressionList();
-        void parseLineAndOutput();
         void updateToken();
         void advanceIfNoTokens();
         bool syntaxAnalyzer(const char* expectedOutput);
         void reportError(const char* tokenOrMessage, bool isDefault);
-        void parseUntilSymbol(char symbol);
-        void output(std::string tokenType);
+        void parseUntilSymbol(char symbol, bool append);
 };
 
 #endif

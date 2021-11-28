@@ -1,8 +1,6 @@
 #ifndef JACKCOMPILER_H
 #define JACKCOMPILER_H
 
-#include <fstream>
-#include <ostream>
 #include "CompilationEngine.h"
 
 class JackCompiler

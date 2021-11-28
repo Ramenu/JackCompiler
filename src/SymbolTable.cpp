@@ -19,7 +19,11 @@ void SymbolTable::define(std::string name, std::string type, std::string kind)
     identifier.index = varCount(kind);
 
     if (kind == "field" || kind == "static")
+    {
+        if (kind == "field")
+            identifier.kind = "this";
         classTable[name] = identifier;
+    }
     else
         subroutineTable[name] = identifier;
 
