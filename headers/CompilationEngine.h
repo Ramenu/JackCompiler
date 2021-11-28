@@ -11,6 +11,7 @@ class CompilationEngine
     public:
         CompilationEngine(const char* inputFile,  const char* outputFile, const char* inputFileName);
     private: 
+        bool isDeclared(std::string varKind, std::string varName);
         bool isStandardClass(std::string token);
         std::string className;
         std::string subroutineDec;
@@ -63,7 +64,7 @@ class CompilationEngine
         void updateToken();
         void advanceIfNoTokens();
         bool syntaxAnalyzer(const char* expectedOutput);
-        void reportError(const char* tokenOrMessage, bool isDefault);
+        void reportError(std::string tokenOrMessage, bool isDefault);
         void parseUntilSymbol(char symbol, bool append);
 };
 

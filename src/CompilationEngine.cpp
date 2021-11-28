@@ -153,6 +153,7 @@ bool CompilationEngine::isStandardClass(std::string token)
 //Continues to parse and compile the line until a symbol is found, if append is true it will append the token to the callTo string
 void CompilationEngine::parseUntilSymbol(char symbol, bool append)
 {
+    std::string identifierKind {};
     bool firstLoop {true};
     while (tokenizer.token[0] != symbol) //While the current token does not match the symbol
     {
@@ -168,7 +169,9 @@ void CompilationEngine::parseUntilSymbol(char symbol, bool append)
                     if (!isStandardClass(tokenizer.token))
                     {
                         callTo += table.typeOf(tokenizer.token);//Table can now find it if declared
-                        vm.writePush(table.kindOf(tokenizer.token), table.indexOf(tokenizer.token)); //Push the address of the object
+                        identifierKind = table.kindOf(tokenizer.token);
+                        if (isDeclared(identifierKind, tokenizer.token))
+                            vm.writePush(identifierKind, table.indexOf(tokenizer.token)); //Push the address of the object
                         nArgs++; //Increment the number of args (since the object counts as one)
                     }
                     else
@@ -179,7 +182,6 @@ void CompilationEngine::parseUntilSymbol(char symbol, bool append)
             }
             firstLoop = false;
         }
-        //output(tokenType);
     }
 }
 
@@ -203,12 +205,10 @@ bool CompilationEngine::subroutineEnds()
 void CompilationEngine::compileStatements()
 {
     tokenIsStatement = true;
-    //out << "<statements>\n";
     while (tokenIsStatement && !subroutineStarts() && !subroutineEnds())
     {
         selectCompilationTask(); 
     }
-    //out << "</statements>\n";
     tokenIsStatement = false;
 }
 
@@ -224,7 +224,6 @@ void CompilationEngine::compileIf()
         noifsCompiled++;
     }
     tokenIsStatement = true;
-    //out << "<ifStatement>\n<keyword> " << tokenizer.token << " </keyword>\n";
     updateToken();
     bool startsExpression {syntaxAnalyzer("(")};
     if (startsExpression)
@@ -254,8 +253,6 @@ void CompilationEngine::compileIf()
                     updateToken();
                 }
 
-                //if (noStatementMatches() == 5) //If the token is not any of the statements, output an empty statements body
-                    //out << "<statements>\n</statements>\n";
                 while (tokenizer.token != "}")
                     selectCompilationTask();
 
@@ -267,7 +264,6 @@ void CompilationEngine::compileIf()
                 {
                     vm.writeGoto(stopLabel); //Goto "STOP" since we do not want the if statement to trail into the else body
                     vm.writeLabel(falseLabel);
-                    //out << "<keyword> " << tokenizer.token << " </keyword>\n"; // <-- else
                     if (tokenizer.hasMoreTokens())
                         updateToken();
                     else
@@ -288,8 +284,6 @@ void CompilationEngine::compileIf()
                             tokenizer.advance();
                             updateToken();
                         }
-                        //if (noStatementMatches() == 5)
-                            //out << "<statements>\n</statements>\n";
                         while (tokenizer.token != "}")
                             selectCompilationTask(); // <-- body of else statement
                         syntaxAnalyzer("}"); //Should end with a "}"
@@ -303,7 +297,6 @@ void CompilationEngine::compileIf()
             }
         }
     }
-    //out << "</ifStatement>\n";    
 }
 
 void CompilationEngine::compileWhile()
@@ -320,7 +313,6 @@ void CompilationEngine::compileWhile()
     /* Writes the label for while statement true condition, should be put here since the VM must evaluate the expression
        each time the loop restarts */
     vm.writeLabel(whileLabel); 
-    //out << "<whileStatement>\n<keyword> " << tokenizer.token << " </keyword>\n";
     updateToken();
     bool startsExpression {syntaxAnalyzer("(")};
     if (startsExpression)
@@ -370,7 +362,6 @@ void CompilationEngine::compileWhile()
     }
     tokenIsStatement = true;
     advanceIfNoTokens();
-    //out << "</whileStatement>\n";
 }
 
 void CompilationEngine::compileDo()
@@ -378,7 +369,6 @@ void CompilationEngine::compileDo()
     nArgs = 0; //Initialize the number of expressions to 0
     bool hasExpressionList {};
     tokenIsStatement = true;
-    //out << "<doStatement>\n<keyword> " << tokenizer.token << " </keyword>\n";
     if (tokenizer.line.find("(") != std::string::npos)
     {
         hasExpressionList = true;
@@ -415,29 +405,19 @@ void CompilationEngine::compileDo()
             }
         }
     }
-    //If there is no '.' then the the name of the class must be appended (assuming the function is in THIS class)
-    /*if (callTo.find(".") == std::string::npos) 
-    {
-        nArgs++; 
-        callTo = className + "." + callTo;
-        vm.writePush("pointer", 0); //Push the address of the caller (actually IDK what this does..)
-    }*/
     vm.writeCall(callTo, nArgs);
     vm.writePop("temp", 0); //The caller must pop/ignore the returned value
-    //out << "</doStatement>\n";
     nArgs = 0;
 }
 
 void CompilationEngine::compileReturn()
 {
     tokenIsStatement = true;
-    //out << "<returnStatement>\n<keyword> " << tokenizer.token << " </keyword>\n";
     updateToken();
     if (tokenType == "IDENTIFIER" || tokenType == "STR_CONST" || tokenType == "INT_CONST" || tokenType == "KEYWORD")
         compileExpression();
     
     bool returnEnded {syntaxAnalyzer(";")}; //Output ";"
-    //out << "</returnStatement>\n"; 
     if (returnEnded)
     {
         if (tokenizer.hasMoreTokens())
@@ -455,16 +435,13 @@ void CompilationEngine::compileLet()
 {
     bool accessArray {}, arrayExpEnds {};
     tokenIsStatement = true;
-    //out << "<letStatement>\n<keyword> " << tokenizer.token << " </keyword>\n" ;
     updateToken();
-    //output(tokenType); //Output the identifier
     std::string identifierName {tokenizer.token};
     updateToken();
     if (tokenizer.token == "[") //Check to see if its accessing array elements
     {
         accessArray = true;
         arrayIdentifier = identifierName;
-        //output(tokenType);
         updateToken();
         compileExpression();
         arrayExpEnds = syntaxAnalyzer("]");
@@ -488,7 +465,6 @@ void CompilationEngine::compileLet()
             bool letEnds {syntaxAnalyzer(";")};
             if (letEnds)
             {
-                //out << "</letStatement>\n"; 
                 if (!accessArray)
                     vm.writePop(table.kindOf(identifierName), table.indexOf(identifierName)); //Pop the value from the expression into the segment
                 else
@@ -515,11 +491,9 @@ void CompilationEngine::compileLet()
 void CompilationEngine::compileClass()
 {
     tokenIsStatement = false;
-    //out << "<class>\n";
     syntaxAnalyzer("class");
     updateToken(); //Get the identifier
     className = tokenizer.token;
-    //output(tokenType); 
     if (tokenizer.line.find("{") != std::string::npos) //If it finds the class body declaration then it is safe to update the token
         updateToken();
     else //Otherwise it may be on the next line
@@ -529,13 +503,11 @@ void CompilationEngine::compileClass()
     }
     if (tokenizer.token == "{") //Check if class body is on the next line
     {
-        //output(tokenType);
         tokenizer.advance();
         updateToken();
     }
     compileFile();
     syntaxAnalyzer("}"); //"}" is expected to end the class
-    //out << "</class>\n";
 }
 
 void CompilationEngine::compileClassVarDec()
@@ -544,13 +516,10 @@ void CompilationEngine::compileClassVarDec()
     tokenIsStatement = false;
     if (tokenizer.line.find(";") != std::string::npos)
     {
-        //out << "<classVarDec>\n<keyword> " << tokenizer.token << " </keyword>\n";
         std::string identifierKind {tokenizer.token}; //Get the kind of the identifier (either "static" OR "field")
         updateToken();
-        //output(tokenType);
         std::string identifierType {tokenizer.token}; //Get the identifier type (int, string, etc..)
         updateToken();
-        //output(tokenType);
         table.define(tokenizer.token, identifierType, identifierKind); //The class table will add the newly defined identifier
         updateToken();
 
@@ -565,14 +534,11 @@ void CompilationEngine::compileClassVarDec()
                 reportError("Expected an identifier after \",\"", false);
                 break;
             }
-            //output(tokenType); //First output the identifier
             table.define(tokenizer.token, identifierType, identifierKind); //Define the identifier in the class table
             updateToken(); //Get "," or ";"
         }
         if (!endsAfterComma)
         {
-            //output(tokenType); //Output ";"
-            //out << "</classVarDec>\n";
             if (tokenizer.hasMoreTokens())
                 updateToken(); //There should not be any tokens left! But if there are it is probably a "}" so just update it
             else
@@ -589,10 +555,6 @@ void CompilationEngine::compileSubroutineDec()
     noifsCompiled = 0;
     nowhilesCompiled = 0;
 
-    if (tokenizer.line.find("moveBall") != std::string::npos)
-    {
-        printf("feorimfo");
-    }
     subroutineDec = tokenizer.token; //Get the subroutine declaration type (constructor, function, method)
     table.startSubroutine(); //Clears the sub routine tables contents
     size_t noLocals {reader.getLocals(tokenizer.line)}; //Returns the number of local variables in the current subroutine
@@ -601,7 +563,6 @@ void CompilationEngine::compileSubroutineDec()
     updateToken(); //Get the identifier name
     subroutineName = tokenizer.token;
     tokenIsStatement = false;
-    //out << "<subroutineDec>\n<keyword> " << tokenizer.token << " </keyword>\n";
     bool subroutineHasPara {};
     std::string classNameStr {className};
     subroutineName = classNameStr.append("." + subroutineName);
@@ -637,7 +598,6 @@ void CompilationEngine::compileSubroutineDec()
             advanceIfNoTokens(); 
         if (tokenizer.token == "{")
             compileSubroutineBody();
-        //out << "</subroutineDec>\n"; //No advance here because subroutine body is called which has to have a { as a token
     }
     subroutineName.clear(); //Subroutine ends so erase the name so it does not keep appending
 }
@@ -645,11 +605,9 @@ void CompilationEngine::compileSubroutineDec()
 void CompilationEngine::compileParameterList()
 {
     tokenIsStatement = false;
-    //out << "<parameterList>\n";
     updateToken(); //Check the first parameter, or if the parameter ends
     while (tokenizer.token != ")")
     {
-        //output(tokenType); //Output the token type
         if (tokenizer.hasMoreTokens())
             updateToken();
         else
@@ -659,7 +617,6 @@ void CompilationEngine::compileParameterList()
             syntaxAnalyzer("IDENTIFIER");
             break;
         }
-        //output(tokenType);
         table.define(tokenizer.token, tokenizer.prevToken, "argument"); //Adds an argument variable to the subroutine table
         if (tokenizer.hasMoreTokens())
             updateToken(); 
@@ -677,15 +634,12 @@ void CompilationEngine::compileParameterList()
                 advanceIfNoTokens();
         }
     }
-    //out << "</parameterList>\n";
-    //output(tokenType); //Output the ")"
 }
 
 void CompilationEngine::compileSubroutineBody()
 {
     inSubroutine = true;
     tokenIsStatement = false;
-    //out << "<subroutineBody>\n";
     bool subroutineBodyStarts {syntaxAnalyzer("{")};
     if (subroutineBodyStarts)
     {
@@ -700,12 +654,8 @@ void CompilationEngine::compileSubroutineBody()
             selectCompilationTask(); 
         }
     }
-    bool subroutineEnds {syntaxAnalyzer("}")};
-    if (subroutineEnds)
-    {
-        //out << "</subroutineBody>\n";
-        advanceIfNoTokens();
-    }
+    syntaxAnalyzer("}");
+    advanceIfNoTokens();
     inSubroutine = false;
 }
 
@@ -713,17 +663,14 @@ void CompilationEngine::compileVarDec()
 {
     bool improperVarDec {};
     tokenIsStatement = false;
-    //out << "<varDec>\n<keyword> " << tokenizer.token << " </keyword>\n";
     if (inSubroutine) //Variables cannot be declared outside of subroutines
     {
         if (tokenizer.line.find(";") != std::string::npos) //To avoid infinite loop
         {
             updateToken(); //Get the identifier type (int, string, classname, etc..)
             std::string identifierType {tokenizer.token};
-            //output(tokenType);
             updateToken(); //Get the first identifier
             std::string identifierName {tokenizer.token};
-            //output(tokenType);
             table.define(identifierName, identifierType, "local");
             updateToken(); //Check if its "," or ";"
             //Since for variable declarations, identifier names can be seperated with commas, keep adding every var to the symbol table
@@ -733,7 +680,6 @@ void CompilationEngine::compileVarDec()
                 updateToken();
                 if (tokenizer.token != ";") //If there is a semicolon right after a comma, that is incorrect, punish the programmer
                 {
-                    //output(tokenType);
                     table.define(tokenizer.token, identifierType, "local"); 
                     updateToken();
                 }
@@ -746,19 +692,13 @@ void CompilationEngine::compileVarDec()
             syntaxAnalyzer(";");
             if (!improperVarDec)
             {
-                //out << "</varDec>\n";
                 if (tokenizer.hasMoreTokens())
                     updateToken(); //There should not be any tokens left! But if there are it is probably a "}" so just update it
                 else
                     advanceIfNoTokens();
             }
         }
-        else
-            reportError("Variable declaration does not end with a \";\"", false);
-    }
-    else
-        reportError("Variable declaration outside of subroutine scope is not allowed", false);
-    
+    } 
 }
 
 /* End of methods */
@@ -774,8 +714,6 @@ void CompilationEngine::compileExpression()
     char operatorSymbols[9] {'+', '-', '*', '/', '&', '|', '<', '>', '='};
     char endExpressionSymbols[4] {')', ']', ';', ','}; //Symbols that an expression can end with
     std::string arrIdent {};
-    
-    //out << "<expression>\n";
    
     while (true)
     {
@@ -794,7 +732,6 @@ void CompilationEngine::compileExpression()
         {
             if (tokenizer.token[0] == operatorSymbols[i]) //If the token is an operator, then there is another term.. so the expression continues
             {   
-                //output(tokenType); //Output an operator
                 currentOp = operatorSymbols[i];
                 //Check if the next token starts an expression
                 if (tokenizer.lineLeftToParse[1] == '(' || tokenizer.lineLeftToParse[1] == '[') 
@@ -811,10 +748,8 @@ void CompilationEngine::compileExpression()
             if (tokenizer.token[0] == endExpressionSymbols[i]) //If the current token equals a symbol that ends an expression, end the loop
                 break; 
         }
-        //TODO: Output error message if there is no end expression 
         break;
     }
-    //out << "</expression>\n";
     /* If there is more than one expression being compiled and the expression finishes, we want to update the token
        since the expression does not actually end yet */
     if (tokenizer.token == ")" || tokenizer.token == "]")
@@ -822,7 +757,11 @@ void CompilationEngine::compileExpression()
         if (!arrIdent.empty() && tokenizer.token == "]")
         {
             size_t startArrExpCount {};
-            vm.writePush(table.kindOf(arrIdent), table.indexOf(arrIdent));
+            std::string arrIdentKind {table.kindOf(arrIdent)};
+
+            if (isDeclared(arrIdentKind, arrIdent))
+                vm.writePush(arrIdentKind, table.indexOf(arrIdent));
+
             vm.writeArithmetic('+');
             for (auto&i: tokenizer.lineLeftToParse)
                 if (i == '[')
@@ -843,7 +782,6 @@ void CompilationEngine::compileExpression()
         //Since compiling do calls compile expression list ECP would have to be over 1 to be updated
         else if (inExpressionList && inDo && expressionCallCount > 1)
         {
-            //output(tokenType);
             updateToken();
         }
         if (!inExpressionList && expressionCallCount > 1)
@@ -853,13 +791,11 @@ void CompilationEngine::compileExpression()
     }
     if (!wasOutputtedBefore && currentOp != ' ') //Make sure it was not already outputted and actually contains an operator
         vm.writeArithmetic(currentOp); //Since the expression ends, output the operator that was not outputted
-    //vm.writeArithmetic(currentOp);
     expressionCallCount--; //Decrement when the method finishes, should be 0 when there is expression being compiled in the call stack
 }
 
 void CompilationEngine::compileExpressionList()
 {
-    //out << "<expressionList>\n";
     updateToken(); //Get the first expression
     while (tokenizer.token != ")" && tokenizer.token != ";")
     {
@@ -875,8 +811,6 @@ void CompilationEngine::compileExpressionList()
             updateToken();
         }
     }
-    //out << "</expressionList>\n";
-    //output(tokenType); //Output ")"
 }
 
 void CompilationEngine::compileTerm()
@@ -884,8 +818,6 @@ void CompilationEngine::compileTerm()
     bool arrayIdentifier {};
     size_t numArgsLocal {};
     std::string calleeClassName {};
-    //out << "<term>\n";
-    //output(tokenType);
     if (!compileAnotherExpressionOrTerm(false)) //Check if the current token starts an expression or term, if it returns false..
     {
         if (!reader.startsArray(tokenizer.lineLeftToParse)) //If the token right after the current one is not a '['
@@ -908,7 +840,9 @@ void CompilationEngine::compileTerm()
             else if (tokenType == "IDENTIFIER" && !isStandardClass(tokenizer.token))
             {
                 calleeClassName = tokenizer.token;
-                vm.writePush(table.kindOf(tokenizer.token), table.indexOf(tokenizer.token));
+                std::string identifierKind {table.kindOf(tokenizer.token)};
+                if (isDeclared(identifierKind, tokenizer.token))
+                    vm.writePush(table.kindOf(tokenizer.token), table.indexOf(tokenizer.token));
             }
             else if (tokenizer.token == "this") //If a reference to the object
             {
@@ -921,15 +855,12 @@ void CompilationEngine::compileTerm()
     if (tokenizer.token == ".") //Check if accessing class/object
     {
         bool expressionListStarts {};
-        //output(tokenType);
         if (tokenizer.line.find("(") != std::string::npos)
         {
             callTo.clear();
-            //WHY IS THIS HERE..?
             if (!isStandardClass(tokenizer.prevToken)) //Check if the method is accessed by an object
             {
                 callTo += table.typeOf(tokenizer.prevToken);
-                //vm.writePush(table.kindOf(tokenizer.prevToken), table.indexOf(tokenizer.prevToken)); //Push the address of the object
             }
             else
                 callTo = tokenizer.prevToken; //Otherwise append it normally
@@ -953,7 +884,6 @@ void CompilationEngine::compileTerm()
             reportError("No expression list found after .\n", false);
         if (expressionListStarts)
         {
-            //output(tokenType);
             inExpressionList = true;
             inTerm = true;
             compileExpressionList(); //Compile the parameter list
@@ -962,7 +892,6 @@ void CompilationEngine::compileTerm()
             vm.writeCall(callTo, numArgsLocal); //Writes a VM call command to the subroutine being called and its # of arguments
         }
     }
-    //out << "</term>\n";
 }
 
 /* Compiles an expression or term based on the token, the parameter is set to true if the method calling it is calling it
@@ -975,17 +904,12 @@ bool CompilationEngine::compileAnotherExpressionOrTerm(bool isSecondCall)
     {
         if (tokenizer.token[0] == startExpressionSymbols[i]) //If it finds another expression then call compile expression
         {
-            //No need to output the current token since compileTerm already does that
-            //if (isSecondCall) //If it the second call then the token is updated, so outputting it is necessary
-                //output(tokenType); 
             if (startExpressionSymbols[i] == '[')
                 arrayIdentifier = tokenizer.prevToken;
             updateToken(); 
             compileExpression();
 
             //Since compile expression will output the same token, we dont want the program to output the same token twice
-            //if (!(expressionCallCount >= 1)) 
-                //output(tokenType);
             return true;
         }
         else if (tokenizer.token[0] == unaryOpSymbols[i]) //If it finds an unary operator then compile another term
@@ -1041,22 +965,38 @@ bool CompilationEngine::syntaxAnalyzer(const char* expectedOutput)
     }
     else //If no error is found, outputs it to the xml fil
     {
-        ////output(tokenType);
         return true;
     }
     return true;
 }
 
-//Reports an error with the expected token that was supposed to be placed, if "isDefault" is set to false it will display a custom error message
-void CompilationEngine::reportError(const char* tokenOrMessage, bool isDefault)
+//Checks if a static, field, argument, or local variable was declared, if not, reports an error
+bool CompilationEngine::isDeclared(std::string var, std::string varName)
 {
-    errorsFound++;
+    if (var == "NONE")
+    {
+        if (inSubroutine)
+            reportError("\"" + varName + "\" has not been declared in subroutine " + subroutineName, false);
+        else
+            reportError("\"" + varName + "\" has not been declared in class " + className, false);
+        return false;
+    }
+    return true;
+}
+
+//Reports an error with the expected token that was supposed to be placed, if "isDefault" is set to false it will display a custom error message
+void CompilationEngine::reportError(std::string tokenOrMessage, bool isDefault)
+{
     errorHappened = true;
+    errorsFound++;
     if (isDefault)
         printf(RED "\nERROR:" RESET " At line %d: Expected \"%s\" after \"%s\"\n", tokenizer.lineNum, tokenOrMessage, tokenizer.prevToken.c_str());
     else
-        printf(RED "\nERROR:" RESET " At line %d: %s\n", tokenizer.lineNum, tokenOrMessage);
-    
+    {
+        printf(RED "\nERROR:" RESET " At line %d: %s\n", tokenizer.lineNum, tokenOrMessage.c_str());
+        tokenizer.advance();
+        tokenType = tokenizer.getTokenType();
+    }
     tokenizer.advance(); //Advance the token after reporting the error
-    updateToken();
+    tokenType = tokenizer.getTokenType();
 }

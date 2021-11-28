@@ -1,11 +1,11 @@
 class Main {
     function void main(){
-        var Array afro, baby, c;
-        let afro[baby[afro[3]]] = afro[afro[5]] * baby[((7 - afro[3]) - Math.double(2)) + 1];  
+        var Array baby, c;
+        let afro[baby[afro[3]]] = afro[afro[5]] * baby[((7 - afro[3]) - Math.double(2)) + 1];
         return;
     }
     function int double(int a) {
-    	return a * 2;
+    	return a * 2
     }
 }
 
