@@ -7,7 +7,6 @@ class JackTokenizer
 {
     public:
         JackTokenizer(const char* inputFile);
-        bool debug;
         std::string token;
         std::string prevToken;
         static std::string classDeclarations[15];
@@ -24,9 +23,9 @@ class JackTokenizer
         std::string lineLeftToParse;
         void toNextLine();
         std::ifstream openFile(const char* filePath);
+        bool parsedDecStatement;
     private:
         bool authenticateToken(std::string arr[], unsigned short size);
-        bool parsedDecStatement;
         bool checkConflictingNames();
         unsigned int mostSimilarStr(std::string lineToCompare, std::string exactString);
 };

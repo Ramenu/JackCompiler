@@ -1,7 +1,6 @@
 #ifndef SYMBOLTABLE_H
 #define SYMBOLTABLE_H
 
-#include <string>
 #include <unordered_map>
 #include "Identifier.h"
 

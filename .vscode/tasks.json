@@ -6,11 +6,10 @@
 			"label": "C/C++: g++.exe build active file",
 			"command": "C:\\msys64\\mingw64\\bin\\g++.exe",
 			"args": [
-				"-g",
 				"-std=c++17",
 				"-I${workspaceFolder}/headers",
 				"-o",
-				"${workspaceFolder}/main",
+				"${workspaceFolder}/JackCompiler",
 				"${workspaceFolder}/src/main.cpp",
 				"${workspaceFolder}/src/JackCompiler.cpp",
 				"${workspaceFolder}/src/JackTokenizer.cpp",

@@ -6,9 +6,9 @@
 class JackCompiler
 {
     public:
-        void startUp(const char* path, bool doDebug);
+        void startUp(const char* path);
     private:
-        void readDirectory(const char* directoryPath, bool doDebug);
+        void readDirectory(const char* directoryPath);
         void writeToFile(const char* filePath);
         void addClassDeclarationsToArr(std::string pathName);
 };

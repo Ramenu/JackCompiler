@@ -6,10 +6,10 @@
 namespace fs = std::filesystem;
 
 //Is called from main, and checks to see if the path given is a directory or not
-void JackCompiler::startUp(const char* path, bool doDebug)
+void JackCompiler::startUp(const char* path)
 {
     if (fs::is_directory(path))
-        readDirectory(path, doDebug);
+        readDirectory(path);
     else if (fs::is_regular_file(path))
     {
         if (fs::path(path).filename().extension().string() == ".jack") //Confirm that a jack file is being compiled
@@ -61,7 +61,7 @@ void JackCompiler::addClassDeclarationsToArr(std::string pathName)
 
 /* Method that iterates through the contents of a directory, finding the files with the .jack extension and sending them to the
    JackTokenizer to parse them */
-void JackCompiler::readDirectory(const char* directoryPath, bool doDebug)
+void JackCompiler::readDirectory(const char* directoryPath)
 {
     bool hasAnyJackFiles {};
     addClassDeclarationsToArr(directoryPath);

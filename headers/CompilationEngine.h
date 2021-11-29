@@ -11,6 +11,7 @@ class CompilationEngine
     public:
         CompilationEngine(const char* inputFile,  const char* outputFile, const char* inputFileName);
     private: 
+        bool errorInExpression;
         bool isDeclared(std::string varKind, std::string varName);
         bool isStandardClass(std::string token);
         std::string className;

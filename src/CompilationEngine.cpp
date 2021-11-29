@@ -5,7 +5,7 @@
 //Class constructor
 CompilationEngine::CompilationEngine(const char* inputFile, const char* outputFile, const char* inputFileName)
 : 
-tokenizer {inputFile}, vm {outputFile}, reader {inputFile}, nArgs {}, noOfTerms {}, noifsCompiled {}, nowhilesCompiled {}, inLet {}
+tokenizer {inputFile}, vm {outputFile}, reader {inputFile}, nArgs {}, noOfTerms {}, noifsCompiled {}, nowhilesCompiled {}, inLet {}, errorInExpression {}, inSubroutine {}
 {
     this->inputFileName = inputFileName; //Needed for outputting for where the compilation error happened
     //Initialize lineNum and count to 0
@@ -172,6 +172,8 @@ void CompilationEngine::parseUntilSymbol(char symbol, bool append)
                         identifierKind = table.kindOf(tokenizer.token);
                         if (isDeclared(identifierKind, tokenizer.token))
                             vm.writePush(identifierKind, table.indexOf(tokenizer.token)); //Push the address of the object
+                        else
+                            return;
                         nArgs++; //Increment the number of args (since the object counts as one)
                     }
                     else
@@ -214,15 +216,13 @@ void CompilationEngine::compileStatements()
 
 void CompilationEngine::compileIf()
 {
+    errorInExpression = false;
     std::string falseLabel, trueLabel, stopLabel {};
-    if (inSubroutine)
-    {
-        //Increment each time a if statement is compiled, to keep each if-statement in the subroutine unique
-        falseLabel = "IF_FALSE" + std::to_string(noifsCompiled);
-        trueLabel = "IF_TRUE" + std::to_string(noifsCompiled);
-        stopLabel = "IF_END" + std::to_string(noifsCompiled); //For else statement <--
-        noifsCompiled++;
-    }
+    //Increment each time a if statement is compiled, to keep each if-statement in the subroutine unique
+    falseLabel = "IF_FALSE" + std::to_string(noifsCompiled);
+    trueLabel = "IF_TRUE" + std::to_string(noifsCompiled);
+    stopLabel = "IF_END" + std::to_string(noifsCompiled); //For else statement <--
+    noifsCompiled++;
     tokenIsStatement = true;
     updateToken();
     bool startsExpression {syntaxAnalyzer("(")};
@@ -230,70 +230,73 @@ void CompilationEngine::compileIf()
     {
         updateToken();
         compileExpression(); //Compiles the expression in the if statement
-        bool endsExpression {syntaxAnalyzer(")")};
-        if (endsExpression)
+        if (!errorInExpression) //Make sure there was no error in the expression
         {
-            //Should be "{", very important to update it here, because compileStatements() will not be called if not done!
-            if (tokenizer.hasMoreTokens())
-                updateToken(); 
-            else
-                advanceIfNoTokens();
-            bool bodyStarts {syntaxAnalyzer("{")};
-            vm.writeIf(trueLabel); //Writes an if-goto command for the "if_true" label
-            vm.writeGoto(falseLabel); //Writes a goto command for the "if_false" label
-            if (bodyStarts)
+            bool endsExpression {syntaxAnalyzer(")")};
+            if (endsExpression)
             {
-                vm.writeLabel(trueLabel); //Writes the label for condition is true
-                tokenIsStatement = false;
+                //Should be "{", very important to update it here, because compileStatements() will not be called if not done!
                 if (tokenizer.hasMoreTokens())
-                    updateToken(); //Even though the if ends here, if body is on the same line update it
-                else //Otherwise just advance to the body of the if statement
+                    updateToken(); 
+                else
+                    advanceIfNoTokens();
+                bool bodyStarts {syntaxAnalyzer("{")};
+                vm.writeIf(trueLabel); //Writes an if-goto command for the "if_true" label
+                vm.writeGoto(falseLabel); //Writes a goto command for the "if_false" label
+                if (bodyStarts)
                 {
-                    tokenizer.advance();
-                    updateToken();
-                }
-
-                while (tokenizer.token != "}")
-                    selectCompilationTask();
-
-                syntaxAnalyzer("}"); //Make sure the if statement ends with a brace "}"
-                tokenIsStatement = true;
-                advanceIfNoTokens();
-                bool hasElse {tokenizer.token == "else"};
-                if (hasElse) //If the updated token contains an else statement, then do not end the if statement here
-                {
-                    vm.writeGoto(stopLabel); //Goto "STOP" since we do not want the if statement to trail into the else body
-                    vm.writeLabel(falseLabel);
+                    vm.writeLabel(trueLabel); //Writes the label for condition is true
+                    tokenIsStatement = false;
                     if (tokenizer.hasMoreTokens())
-                        updateToken();
-                    else
-                        advanceIfNoTokens();
-                    if (tokenizer.lineLeftToParse.length() == 0) //Double check since "else" is not of length 1
+                        updateToken(); //Even though the if ends here, if body is on the same line update it
+                    else //Otherwise just advance to the body of the if statement
                     {
                         tokenizer.advance();
                         updateToken();
                     }
-                    bool elseBodyStarts {syntaxAnalyzer("{")}; //Should start with a "{"
-                    if (elseBodyStarts)
+
+                    while (tokenizer.token != "}")
+                        selectCompilationTask();
+
+                    syntaxAnalyzer("}"); //Make sure the if statement ends with a brace "}"
+                    tokenIsStatement = true;
+                    advanceIfNoTokens();
+                    bool hasElse {tokenizer.token == "else"};
+                    if (hasElse) //If the updated token contains an else statement, then do not end the if statement here
                     {
-                        tokenIsStatement = false;
+                        vm.writeGoto(stopLabel); //Goto "STOP" since we do not want the if statement to trail into the else body
+                        vm.writeLabel(falseLabel);
                         if (tokenizer.hasMoreTokens())
                             updateToken();
-                        else 
+                        else
+                            advanceIfNoTokens();
+                        if (tokenizer.lineLeftToParse.length() == 0) //Double check since "else" is not of length 1
                         {
                             tokenizer.advance();
                             updateToken();
                         }
-                        while (tokenizer.token != "}")
-                            selectCompilationTask(); // <-- body of else statement
-                        syntaxAnalyzer("}"); //Should end with a "}"
-                        vm.writeLabel(stopLabel);
+                        bool elseBodyStarts {syntaxAnalyzer("{")}; //Should start with a "{"
+                        if (elseBodyStarts)
+                        {
+                            tokenIsStatement = false;
+                            if (tokenizer.hasMoreTokens())
+                                updateToken();
+                            else 
+                            {
+                                tokenizer.advance();
+                                updateToken();
+                            }
+                            while (tokenizer.token != "}")
+                                selectCompilationTask(); // <-- body of else statement
+                            syntaxAnalyzer("}"); //Should end with a "}"
+                            vm.writeLabel(stopLabel);
+                        }
+                        tokenIsStatement = true;
+                        advanceIfNoTokens();
                     }
-                    tokenIsStatement = true;
-                    advanceIfNoTokens();
+                    if (!hasElse) //If there is no else statement write the label after the if statement ends
+                        vm.writeLabel(falseLabel); 
                 }
-                if (!hasElse) //If there is no else statement write the label after the if statement ends
-                    vm.writeLabel(falseLabel); 
             }
         }
     }
@@ -302,16 +305,14 @@ void CompilationEngine::compileIf()
 void CompilationEngine::compileWhile()
 {
     std::string whileLabel, endLoopLabel {};
+    errorInExpression = false;
     tokenIsStatement = true;
-    if (inSubroutine)
-    {
-        whileLabel = "WHILE_EXP" + std::to_string(nowhilesCompiled); 
-        endLoopLabel = "WHILE_END" + std::to_string(nowhilesCompiled);
-        //Each time a while statement is compiled, the # of while statement compiled must increment so each while statement in the subroutine is unique 
-        nowhilesCompiled++;
-    }
+    whileLabel = "WHILE_EXP" + std::to_string(nowhilesCompiled); 
+    endLoopLabel = "WHILE_END" + std::to_string(nowhilesCompiled);
+    //Each time a while statement is compiled, the # of while statement compiled must increment so each while statement in the subroutine is unique 
+    nowhilesCompiled++;
     /* Writes the label for while statement true condition, should be put here since the VM must evaluate the expression
-       each time the loop restarts */
+    each time the loop restarts */
     vm.writeLabel(whileLabel); 
     updateToken();
     bool startsExpression {syntaxAnalyzer("(")};
@@ -319,44 +320,47 @@ void CompilationEngine::compileWhile()
     {
         updateToken();
         compileExpression();
-        bool expressionEnds {syntaxAnalyzer(")")};
-        vm.writeArithmetic('~'); //Write a not command (if the condition is not true)
-        if (expressionEnds)
+        if (!errorInExpression) //Make sure no errors were found in the expression
         {
-            /* This while loop is important here, since compileExpression() parses up to ")" each time it is called, if there are multiple
-               brackets then it will not update those tokens but it will output them, so updating it until it reaches the body should do */
-            bool bodyStarts {};
-            advanceIfNoTokens(); //In case ")" is the last token of the line and "{" is on the next line
-            if (tokenizer.lineLeftToParse.find("{") != std::string::npos)
+            bool expressionEnds {syntaxAnalyzer(")")};
+            vm.writeArithmetic('~'); //Write a not command (if the condition is not true)
+            if (expressionEnds)
             {
-                bodyStarts = true;
-                while (tokenizer.token != "{")
-                    updateToken(); //Should be "{", very important to update it here, because compileStatements() will not be called if not done!
-            }
-            else
-            {
-                bodyStarts = false;
-                reportError("{", true);
-            }
-            if (bodyStarts)
-            {
-                vm.writeIf(endLoopLabel); //Writes an if-goto command for the (END_LOOP) label
-                syntaxAnalyzer("{");
-                tokenIsStatement = false;
-
-                if (tokenizer.hasMoreTokens())
-                updateToken(); //Even though the while declaration ends here, if while body is on the same line update it
+                /* This while loop is important here, since compileExpression() parses up to ")" each time it is called, if there are multiple
+                brackets then it will not update those tokens but it will output them, so updating it until it reaches the body should do */
+                bool bodyStarts {};
+                advanceIfNoTokens(); //In case ")" is the last token of the line and "{" is on the next line
+                if (tokenizer.lineLeftToParse.find("{") != std::string::npos)
+                {
+                    bodyStarts = true;
+                    while (tokenizer.token != "{")
+                        updateToken(); //Should be "{", very important to update it here, because compileStatements() will not be called if not done!
+                }
                 else
                 {
-                    tokenizer.advance();
-                    updateToken();
+                    bodyStarts = false;
+                    reportError("{", true);
                 }
-                while (tokenizer.token != "}")
-                    selectCompilationTask();
-                vm.writeGoto(whileLabel); //Restart the loop and evaluate the expression again
-                syntaxAnalyzer("}"); //Make sure the while statement ends with a brace "}"
+                if (bodyStarts)
+                {
+                    vm.writeIf(endLoopLabel); //Writes an if-goto command for the (END_LOOP) label
+                    syntaxAnalyzer("{");
+                    tokenIsStatement = false;
 
-                vm.writeLabel(endLoopLabel); //Writes the label for the while statement end
+                    if (tokenizer.hasMoreTokens())
+                    updateToken(); //Even though the while declaration ends here, if while body is on the same line update it
+                    else
+                    {
+                        tokenizer.advance();
+                        updateToken();
+                    }
+                    while (tokenizer.token != "}")
+                        selectCompilationTask();
+                    vm.writeGoto(whileLabel); //Restart the loop and evaluate the expression again
+                    syntaxAnalyzer("}"); //Make sure the while statement ends with a brace "}"
+
+                    vm.writeLabel(endLoopLabel); //Writes the label for the while statement end
+                }
             }
         }
     }
@@ -367,6 +371,7 @@ void CompilationEngine::compileWhile()
 void CompilationEngine::compileDo()
 {
     nArgs = 0; //Initialize the number of expressions to 0
+    errorInExpression = false;
     bool hasExpressionList {};
     tokenIsStatement = true;
     if (tokenizer.line.find("(") != std::string::npos)
@@ -392,16 +397,19 @@ void CompilationEngine::compileDo()
                 vm.writePush("pointer", 0); //Push the address of the caller (actually IDK what this does..)
             }
             compileExpressionList();
-            inExpressionList = false;
-            inDo = false;
-            updateToken();
-            bool doEnds {syntaxAnalyzer(";")};
-            if (doEnds)
+            if (!errorInExpression) //If there was no error found in the expression list
             {
-                if (tokenizer.hasMoreTokens())
-                    updateToken(); //There should not be any tokens left! But if there are it is probably a "}" so just update it
-                else
-                    advanceIfNoTokens();
+                inExpressionList = false;
+                inDo = false;
+                updateToken();
+                bool doEnds {syntaxAnalyzer(";")};
+                if (doEnds)
+                {
+                    if (tokenizer.hasMoreTokens())
+                        updateToken(); //There should not be any tokens left! But if there are it is probably a "}" so just update it
+                    else
+                        advanceIfNoTokens();
+                }
             }
         }
     }
@@ -412,73 +420,88 @@ void CompilationEngine::compileDo()
 
 void CompilationEngine::compileReturn()
 {
+    errorInExpression = false;
     tokenIsStatement = true;
     updateToken();
     if (tokenType == "IDENTIFIER" || tokenType == "STR_CONST" || tokenType == "INT_CONST" || tokenType == "KEYWORD")
-        compileExpression();
-    
-    bool returnEnded {syntaxAnalyzer(";")}; //Output ";"
-    if (returnEnded)
+        if (tokenizer.token != "return") //Just to make sure it got updated, because if there is no ';' or expression the token will still be "return"
+            compileExpression();
+    if (!errorInExpression)
     {
-        if (tokenizer.hasMoreTokens())
-            updateToken(); //There should not be any tokens left! But if there are it is probably a "}" so just update it
-        else
-            advanceIfNoTokens();
+        bool returnEnded {syntaxAnalyzer(";")}; //Output ";"
+        if (returnEnded)
+        {
+            if (tokenizer.hasMoreTokens())
+                updateToken(); //There should not be any tokens left! But if there are it is probably a "}" so just update it
+            else
+                advanceIfNoTokens();
+        }
+        //Writes VM return
+        if (subroutineType == "void") //Even a void subroutine must return something
+            vm.writePush("constant", 0);
+        vm.writeReturn();
     }
-    //Writes VM return
-    if (subroutineType == "void") //Even a void subroutine must return something
-        vm.writePush("constant", 0);
-    vm.writeReturn();
 }
 
 void CompilationEngine::compileLet()
 {
     bool accessArray {}, arrayExpEnds {};
     tokenIsStatement = true;
+    errorInExpression = false;
     updateToken();
     std::string identifierName {tokenizer.token};
     updateToken();
     if (tokenizer.token == "[") //Check to see if its accessing array elements
     {
         accessArray = true;
+        errorInExpression = false;
         arrayIdentifier = identifierName;
         updateToken();
         compileExpression();
-        arrayExpEnds = syntaxAnalyzer("]");
-        updateToken();
-    }
-    bool hasEquals {syntaxAnalyzer("=")};
-    equalToExpression = true;
-    if (!accessArray || accessArray && arrayExpEnds)
-    {
-        if (hasEquals)
+        if (!errorInExpression) //If there was no error in the expression
         {
+            arrayExpEnds = syntaxAnalyzer("]");
             updateToken();
-            inLet = true;
-            compileExpression();
-            inLet = false;
-
-            //If the token is a semicolon then the let statement ends here, otherwise update to see if it is a ";"
-            if (tokenizer.line.find(";") != std::string::npos)
-                if (tokenizer.token != ";" && tokenizer.hasMoreTokens()) 
-                    updateToken();
-            bool letEnds {syntaxAnalyzer(";")};
-            if (letEnds)
+        }
+    }
+    if (!errorInExpression) //When let is compiled, error in expression is set to false automatically but it is set here for extra precaution
+    {
+        bool hasEquals {syntaxAnalyzer("=")};
+        equalToExpression = true;
+        if (!accessArray || accessArray && arrayExpEnds)
+        {
+            if (hasEquals)
             {
-                if (!accessArray)
-                    vm.writePop(table.kindOf(identifierName), table.indexOf(identifierName)); //Pop the value from the expression into the segment
-                else
+                updateToken();
+                inLet = true;
+                compileExpression();
+                inLet = false;
+
+                //If the token is a semicolon then the let statement ends here, otherwise update to see if it is a ";"
+                if (!errorInExpression) //Check to make sure the expression has no error again
                 {
-                    vm.writePop("temp", 0); //Store the value from the expression in a temporary memory location
-                    vm.writePop("pointer", 1); //Pop the array address into the "THAT" segment
-                    vm.writePush("temp", 0);
-                    vm.writePop("that", 0); //If a value is being stored in an array, the value must be put in the base address of the array index
+                    if (tokenizer.line.find(";") != std::string::npos)
+                        if (tokenizer.token != ";" && tokenizer.hasMoreTokens()) 
+                            updateToken();
+                    bool letEnds {syntaxAnalyzer(";")};
+                    if (letEnds)
+                    {
+                        if (!accessArray)
+                            vm.writePop(table.kindOf(identifierName), table.indexOf(identifierName)); //Pop the value from the expression into the segment
+                        else
+                        {
+                            vm.writePop("temp", 0); //Store the value from the expression in a temporary memory location
+                            vm.writePop("pointer", 1); //Pop the array address into the "THAT" segment
+                            vm.writePush("temp", 0);
+                            vm.writePop("that", 0); //If a value is being stored in an array, the value must be put in the base address of the array index
+                        }
+                        if (tokenizer.hasMoreTokens())
+                            updateToken(); //There should not be any tokens left! But if there are it is probably a "}" so just update it
+                        else
+                            advanceIfNoTokens();
+                        
+                    }
                 }
-                if (tokenizer.hasMoreTokens())
-                    updateToken(); //There should not be any tokens left! But if there are it is probably a "}" so just update it
-                else
-                    advanceIfNoTokens();
-                
             }
         }
     }
@@ -554,6 +577,7 @@ void CompilationEngine::compileSubroutineDec()
     //Reset the number of ifs/while statements compiled since a new subroutine has begun
     noifsCompiled = 0;
     nowhilesCompiled = 0;
+    inSubroutine = true;
 
     subroutineDec = tokenizer.token; //Get the subroutine declaration type (constructor, function, method)
     table.startSubroutine(); //Clears the sub routine tables contents
@@ -600,6 +624,7 @@ void CompilationEngine::compileSubroutineDec()
             compileSubroutineBody();
     }
     subroutineName.clear(); //Subroutine ends so erase the name so it does not keep appending
+    inSubroutine = false;
 }
 
 void CompilationEngine::compileParameterList()
@@ -698,6 +723,8 @@ void CompilationEngine::compileVarDec()
                     advanceIfNoTokens();
             }
         }
+        else
+            reportError("Variable declaration does not end with a ';'", false);
     } 
 }
 
@@ -719,9 +746,12 @@ void CompilationEngine::compileExpression()
     {
         if (tokenizer.prevToken == "[")
             arrIdent = arrayIdentifier;
+        
         contLoop = false; //Reinitialize contLoop to false once/if the loop is repeated again
         wasOutputtedBefore = false;
         compileTerm(); //The token is updated when the term is compiled, so no need to update it here
+        if (errorInExpression) //If an error was found break out of the method to prevent false errors 
+            return;
         noOfTerms++;
         if (noOfTerms % 2 == 0 || noOfTerms > 2) //If over 2 terms were compiled at least or two terms are in the stack output an operator
         {
@@ -760,18 +790,21 @@ void CompilationEngine::compileExpression()
             std::string arrIdentKind {table.kindOf(arrIdent)};
 
             if (isDeclared(arrIdentKind, arrIdent))
-                vm.writePush(arrIdentKind, table.indexOf(arrIdent));
-
-            vm.writeArithmetic('+');
-            for (auto&i: tokenizer.lineLeftToParse)
-                if (i == '[')
-                    startArrExpCount++;
-            if (expressionCallCount > 1)
             {
-                vm.writePop("pointer", 1);
-                vm.writePush("that", 0);
+                vm.writePush(arrIdentKind, table.indexOf(arrIdent));
+                vm.writeArithmetic('+');
+                for (auto&i: tokenizer.lineLeftToParse)
+                    if (i == '[')
+                        startArrExpCount++;
+                if (expressionCallCount > 1)
+                {
+                    vm.writePop("pointer", 1);
+                    vm.writePush("that", 0);
+                }
+                arrIdent.clear();
             }
-            arrIdent.clear();
+            else
+                return; //Exit the method to prevent further damage from being done
         }
         //If we are not compiling do, then expression calls expression list, ECP must be over or equal to 2 to be updated
         if (inExpressionList && !inDo && expressionCallCount > 2) 
@@ -784,7 +817,7 @@ void CompilationEngine::compileExpression()
         {
             updateToken();
         }
-        if (!inExpressionList && expressionCallCount > 1)
+        else if (!inExpressionList && expressionCallCount > 1)
         {
             updateToken();
         }
@@ -800,8 +833,9 @@ void CompilationEngine::compileExpressionList()
     while (tokenizer.token != ")" && tokenizer.token != ";")
     {
         compileExpression();
+        if (errorInExpression) //If an error occurred somewhere in the expression exit the method
+            return;
         nArgs++; //For each expression found in the expression list, +1
-
         //The expression list must end with a parenthesis, and each expression, each time compiled, must be seperated with a comma
         if (tokenizer.token != ")" && tokenizer.token == ",") 
         {
@@ -989,14 +1023,13 @@ void CompilationEngine::reportError(std::string tokenOrMessage, bool isDefault)
 {
     errorHappened = true;
     errorsFound++;
+    if (expressionCallCount >= 1) //If inside an expression
+        errorInExpression = true;
     if (isDefault)
-        printf(RED "\nERROR:" RESET " At line %d: Expected \"%s\" after \"%s\"\n", tokenizer.lineNum, tokenOrMessage, tokenizer.prevToken.c_str());
+        printf(RED "\nERROR:" RESET " At line %d: Expected '%s' after \"%s\"\n", tokenizer.lineNum, tokenOrMessage.c_str(), tokenizer.prevToken.c_str());
     else
-    {
         printf(RED "\nERROR:" RESET " At line %d: %s\n", tokenizer.lineNum, tokenOrMessage.c_str());
-        tokenizer.advance();
-        tokenType = tokenizer.getTokenType();
-    }
-    tokenizer.advance(); //Advance the token after reporting the error
-    tokenType = tokenizer.getTokenType();
+    tokenizer.parsedDecStatement = false; //Set it back to false since the tokenizer is advancing to the next line
+    tokenizer.advance();
+    updateToken();
 }

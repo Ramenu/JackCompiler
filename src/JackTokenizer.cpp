@@ -9,7 +9,7 @@ JackTokenizer::JackTokenizer(const char* inputFile): in {openFile(inputFile)}, p
 
 bool JackTokenizer::hasMoreTokens()
 {
-    if (lineLeftToParse.size() != 1) //If the line only has one token, then it does not have any more tokens remaining to parse
+    if (lineLeftToParse.length() > 1) //If the line has one or more tokens
             return true;
     
     return false;
