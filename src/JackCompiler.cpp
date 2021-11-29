@@ -27,6 +27,7 @@ void JackCompiler::startUp(const char* path)
 //Adds the class definitions to the classDec array, useful for handling tokens
 void JackCompiler::addClassDeclarationsToArr(std::string pathName)
 {
+    std::string fileName {};
     //Standard OS libraries (must be put in before the other classes)
     JackTokenizer::classDeclarations[0] = "Math";
     JackTokenizer::classDeclarations[1] = "Screen";
@@ -40,10 +41,17 @@ void JackCompiler::addClassDeclarationsToArr(std::string pathName)
 
     if (fs::is_regular_file(pathName)) //If only one file is being compiled
     {
-        JackTokenizer::classDeclarations[8] = fs::path(pathName).filename().replace_extension().string();
-        JackTokenizer::numberOfClasses++;
-        if (fs::path(pathName).filename().replace_extension().string() != "Main")
-            printf(RED "ERROR: " RESET "File \"%s\" must be named Main!\n", pathName.c_str());
+        fileName = fs::path(pathName).filename().replace_extension().string();
+        if (!isDefaultClass(fileName.c_str())) //If not apart of the standard OS
+        {
+            JackTokenizer::classDeclarations[8] = fs::path(pathName).filename().replace_extension().string();
+            JackTokenizer::numberOfClasses++;
+            if (fs::path(pathName).filename().replace_extension().string() != "Main")
+            {
+                printf(RED "ERROR: " RESET "File \"%s\" must be named Main!\n", fileName.c_str());
+                exit(-1);
+            }
+        }
     }
     else if (fs::is_directory(pathName))
     {
@@ -51,12 +59,25 @@ void JackCompiler::addClassDeclarationsToArr(std::string pathName)
         {
             if (entry.path().filename().extension() == ".jack")
             {
-                JackTokenizer::classDeclarations[JackTokenizer::numberOfClasses] = entry.path().filename().replace_extension().string();
-                JackTokenizer::numberOfClasses++;
+                fileName = entry.path().filename().replace_extension().string();
+                if (!isDefaultClass(fileName.c_str())) //If not apart of the standard OS 
+                {
+                    //Add it to the array
+                    JackTokenizer::classDeclarations[JackTokenizer::numberOfClasses] = entry.path().filename().replace_extension().string();
+                    JackTokenizer::numberOfClasses++; 
+                }
             }
         }
-        //TODO: Add a feature that checks if one of them is at least Main.jack
     }
+}
+
+//Checks if the file being compiled is a OS file (like Array, Math, String, etc..) returns true if so
+bool JackCompiler::isDefaultClass(const char* fileName)
+{
+    for (unsigned short i {}; i < 8; i++)
+        if (fileName == JackTokenizer::classDeclarations[i])
+            return true;
+    return false;
 }
 
 /* Method that iterates through the contents of a directory, finding the files with the .jack extension and sending them to the

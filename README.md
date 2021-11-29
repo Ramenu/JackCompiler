@@ -1,3 +1,6 @@
+
+UPDATE 1.1: Added support for compiling OS classes like Array, Math, String, etc.
+
 This is my version of the nand2tetris JackCompiler. It is probably not the best one out there, and its features are
 very primitive, and inefficient. But it works nonetheless.
 
@@ -21,6 +24,7 @@ I'm not sure if there is a way to change the settings for that. In the future, I
 
 The total time to make the compiler took a span of 3 weeks, the first two weeks to create the parser, and the third to write
 the VM code for it.
+
 
 HOW DOES IT WORK?
 -----------------

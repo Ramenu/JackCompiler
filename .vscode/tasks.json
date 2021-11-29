@@ -10,7 +10,7 @@
 				"-I${workspaceFolder}/headers",
 				"-o",
 				"${workspaceFolder}/JackCompiler",
-				"${workspaceFolder}/src/main.cpp",
+				"${workspaceFolder}/src/Main.cpp",
 				"${workspaceFolder}/src/JackCompiler.cpp",
 				"${workspaceFolder}/src/JackTokenizer.cpp",
 				"${workspaceFolder}/src/CompilationEngine.cpp",
