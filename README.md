@@ -1,8 +1,8 @@
 Jack Compiler V1.0
 ------------------
-This is my version of the Jack Compiler. It is created for the Jack programming language,
-which is an object-oriented language designed for a 16-bit custom built computer. For more
-details visit the nand2tetris website.
+This is my version of the nand2tetris Jack Compiler. It is created for the Jack programming language, which is an object-oriented language designed for a 16-bit custom built computer. 
+It compiles down to VM language, an intermediate representation of the code. See my VM 
+Translator repository if you want to see the compiler backend. 
 
 ![Screenshot](./screenshots/Screenshot_2022-07-25_08-49-37.png)
 
