@@ -1,29 +1,10 @@
+Jack Compiler V1.0
+------------------
+This is my version of the Jack Compiler. It is created for the Jack programming language,
+which is an object-oriented language designed for a 16-bit custom built computer. For more
+details visit the nand2tetris website.
 
-UPDATE 1.1: Added support for compiling OS classes like Array, Math, String, etc.
-
-This is my version of the nand2tetris JackCompiler. It is probably not the best one out there, and its features are
-very primitive, and inefficient. But it works nonetheless.
-
-You may notice that the compilationengine.cpp file is verbose and bloated with lots of redundant code. I intentionally made it
-like that, because earlier when I was developing the compiler, I had a hard time understanding what was happening and where
-it was happening. I then redid it from scratch, and even though it is much more messy and probably difficult to read for
-most people, it helped me a lot. And it is not like I was working on this project with other people anyways, if I did, I
-would have been more mindful of this.
-
-Most of the compiler was written according to the API. There were a few subroutines that I decided not to implement, because
-I didn't feel that they were necessary. 
-
-If you run the compiler and have some errors in your code, it will probably not recognize them. Most of the time, the
-program will crash before it even outputs an errors. And even if the error is outputted, it will be very vague. Still, it has 
-an understanding of simple syntax, so if you're missing a semicolon it will probably recognize it, if the statement/declaration
-did not have any errors, that is.
-
-Also, if you're on WINDOWS the error colour codes are ASCI. Which command prompt does not have, for some reason. At the moment,
-I'm not sure if there is a way to change the settings for that. In the future, I may release an updated version with that fixed
-(probably not) but just something to keep in mind.
-
-The total time to make the compiler took a span of 3 weeks, the first two weeks to create the parser, and the third to write
-the VM code for it.
+![Screenshot](./screenshots/Screenshot_2022-07-25_08-49-37.png)
 
 
 HOW DOES IT WORK?
