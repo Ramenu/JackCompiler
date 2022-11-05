@@ -189,16 +189,12 @@ void CompilationEngine::parseUntilSymbol(char symbol, bool append)
 
 bool CompilationEngine::subroutineStarts()
 {
-    if (tokenizer.token[0] == '{')
-        return true;
-    return false;
+    return (tokenizer.token[0] == '{');
 }
 
 bool CompilationEngine::subroutineEnds()
 {
-    if (tokenizer.token[0] == '}')
-        return true;
-    return false;
+    return (tokenizer.token[0] == '}');
 }
 
 /* Contains compile statement methods */
